@@ -11,10 +11,14 @@ const inter = Inter({ subsets: ["latin"] });
 
 // Page Metadata
 export const metadata: Metadata = {
-  title: "AI Career Coach - Intelligent Career Platform",
+  title: "Gradify - Intelligent Career Platform",
   description:
-    "AI-powered career guidance platform with industry insights, resume building, interview preparation, and personalized career mapping.",
+    "Gradify is an AI-powered career guidance platform offering industry insights, resume building, interview preparation, and personalized career mapping.",
+  icons: {
+    icon: "/logo.png", // ✅ path to your logo or favicon in /public
+  },
 };
+
 
 export default function RootLayout({
   children,
