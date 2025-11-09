@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   description:
     "Gradify is an AI-powered career guidance platform offering industry insights, resume building, interview preparation, and personalized career mapping.",
   icons: {
-    icon: "./logo.png", // ✅ path to your logo or favicon in /public
+    icon: "/logo.png", // ✅ path to your logo or favicon in /public
   },
 };
 
