@@ -468,7 +468,7 @@ export default function IndustryInsightsDashboard({ insights }) {
                   </Badge>
                 ))}
                 {insights.topSkills.length > 3 && (
-                  <Badge variant="outline" className="text-xs bg-white">
+                  <Badge variant="outline" className="text-xs bg-white text-purple-700 border-purple-200">
                     +{insights.topSkills.length - 3} more
                   </Badge>
                 )}
