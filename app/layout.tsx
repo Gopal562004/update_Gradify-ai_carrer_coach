@@ -11,10 +11,15 @@ const inter = Inter({ subsets: ["latin"] });
 
 // Page Metadata
 export const metadata: Metadata = {
-  title: "AI Career Coach - Intelligent Career Platform",
+  title: "Gradify - Intelligent Career Platform",
   description:
-    "AI-powered career guidance platform with industry insights, resume building, interview preparation, and personalized career mapping.",
+    "Gradify is an AI-powered career guidance platform offering industry insights, resume building, interview preparation, and personalized career mapping.",
+  icons: {
+    icon: "/logo.png", // ✅ path to your logo or favicon in /public
+  },
 };
+
+
 
 export default function RootLayout({
   children,
@@ -322,3 +327,85 @@ export default function RootLayout({
     </ClerkProvider>
   );
 }
+
+
+// import { Inter } from "next/font/google";
+// import { ClerkProvider } from "@clerk/nextjs";
+// import { ThemeProvider } from "@/components/theme-provider";
+// import Header from "@/components/Header/Header";
+// import "../styles/globals.css";
+// import type { Metadata } from "next";
+// import { Toaster } from "react-hot-toast";
+// import AnimatedHero from "../app/_components/AnimatedHero";
+
+// // Google Font
+// const inter = Inter({ subsets: ["latin"] });
+
+// // Page Metadata
+// export const metadata: Metadata = {
+//   title: "Gradify - Intelligent Career Platform",
+//   description:
+//     "Gradify is an AI-powered career guidance platform offering industry insights, resume building, interview preparation, and personalized career mapping.",
+//   icons: {
+//     icon: "/logo.png",
+//   },
+// };
+
+// export default function RootLayout({
+//   children,
+// }: {
+//   children: React.ReactNode;
+// }) {
+//   return (
+//     <ClerkProvider
+//       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+//     >
+//       <html lang="en" suppressHydrationWarning>
+//         <body className={inter.className}>
+//           <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+//             {/* Global Header */}
+//             <Header />
+
+//             {/* Animated Hero Section */}
+//             <AnimatedHero />
+
+//             <Toaster
+//               position="top-center"
+//               toastOptions={{
+//                 style: {
+//                   background: "#ffffff",
+//                   color: "#1f2937",
+//                   border: "1px solid #e5e7eb",
+//                   borderRadius: "12px",
+//                   fontSize: "14px",
+//                   padding: "12px 16px",
+//                   boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+//                 },
+//                 success: {
+//                   iconTheme: {
+//                     primary: "#10b981",
+//                     secondary: "#fff",
+//                   },
+//                 },
+//                 error: {
+//                   iconTheme: {
+//                     primary: "#ef4444",
+//                     secondary: "#fff",
+//                   },
+//                 },
+//               }}
+//             />
+
+//             {/* Main Page Content */}
+//             <main className="flex-grow min-h-screen bg-white">{children}</main>
+
+//             {/* Rest of your footer remains the same */}
+//             <footer className="bg-white border-t border-gray-200 text-gray-600">
+//               {/* ... footer content ... */}
+//             </footer>
+//           </ThemeProvider>
+//         </body>
+//       </html>
+//     </ClerkProvider>
+//   );
+// }

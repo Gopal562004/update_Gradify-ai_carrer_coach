@@ -13,13 +13,25 @@ const Header = async () => {
         <div className="flex items-center justify-between h-16">
           {/* Left: Logo */}
           <Link href="/" className="flex items-center space-x-3 group">
-            <div className="relative w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
-              <span className="text-white font-bold text-lg">AI</span>
-              <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg blur opacity-20 group-hover:opacity-30 transition duration-1000 group-hover:duration-200"></div>
+            {/* Logo container */}
+            <div className="relative w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden">
+              {/* Logo image */}
+              <Image
+                src="/logo.png" // ✅ make sure this file is in /public/logo.png
+                alt="Gradify Logo"
+                width={36}
+                height={36}
+                className="object-contain z-10"
+                priority
+              />
+
+              {/* Gradient glow */}
             </div>
+
+            {/* Text section */}
             <div className="flex flex-col">
               <span className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                Ai-Career
+                Gradify
               </span>
               <span className="text-xs text-gray-500 -mt-1">
                 Intelligent Career Platform

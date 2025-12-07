@@ -1,1 +1,59 @@
 @import "tailwindcss";
+
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: white; /* Scrollbar track color */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #e5e5e5; /* Light gray thumb so it's visible on white */
+  border-radius: 10px;
+  border: 3px solid white; /* Creates white border look */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #cccccc;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #e5e5e5 white;
+}
+
+
+@keyframes soft-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes soft-glow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+}
+
+.animate-soft-pulse {
+  animation: soft-pulse 8s ease-in-out infinite;
+}
+
+.animate-soft-glow {
+  animation: soft-glow 6s ease-in-out infinite;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}

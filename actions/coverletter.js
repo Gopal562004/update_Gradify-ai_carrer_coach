@@ -4,8 +4,17 @@ import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+import { google } from "googleapis";
+
+/**
+ * ✅ Send email using Gmail API from user's Gmail account
+ * @param {string} accessToken - OAuth access token of the user
+ * @param {string} to - Recipient email
+ * @param {string} subject - Email subject
+ * @param {string} message - Email body
+ */
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 /**
  * ✅ Generate a new cover letter using Gemini AI
@@ -141,3 +150,41 @@ export async function deleteCoverLetter(id) {
 
   return { success: true, message: "Cover letter deleted successfully" };
 }
+
+
+
+export async function sendEmail({ to, subject, message, accessToken }) {
+  if (!accessToken) throw new Error("Access token is required");
+
+  try {
+    const oauth2Client = new google.auth.OAuth2();
+    oauth2Client.setCredentials({ access_token: accessToken });
+
+    const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+
+    // Gmail API requires base64url encoded message
+    const rawMessage = [
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      "Content-Type: text/html; charset=utf-8",
+      "",
+      message,
+    ].join("\n");
+
+    const encodedMessage = Buffer.from(rawMessage)
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+
+    await gmail.users.messages.send({
+      userId: "me",
+      requestBody: { raw: encodedMessage },
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.error("Send Email Error:", err);
+    throw new Error("Failed to send email");
+  }
+};
