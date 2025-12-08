@@ -75,7 +75,7 @@ Using **Machine learning + LLM APIs**, Gradify provides:
 ## 📦 Installation  
 
 ```bash
-git clone https://github.com/Gopal562004/Gradify.git
+git clone https://github.com/Gopal562004/update_Gradify-ai_carrer_coach.git
 
 cd Gradify
 
