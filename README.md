@@ -77,7 +77,7 @@ Using **Machine learning + LLM APIs**, Gradify provides:
 ```bash
 git clone https://github.com/Gopal562004/update_Gradify-ai_carrer_coach.git
 
-cd Gradify
+cd update_Gradify-ai_carrer_coach
 
 npm install
 
