@@ -1236,7 +1236,7 @@ export default function BulkEmailToHR() {
   };
 
   const handleViewHistory = () => {
-    router.push("/dashboard/campaigns");
+    router.push("/ai-cover-letter/campaigns");
   };
 
   const validEmailCount = emails
@@ -1473,10 +1473,10 @@ export default function BulkEmailToHR() {
                     onValueChange={setSelectedLetterId}
                     disabled={!isGmailConnected || loading || activeCampaign}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full bg-white">
                       <SelectValue placeholder="Choose a cover letter" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-60 overflow-y-auto bg-white ">
                       {coverLetters.map((letter) => (
                         <SelectItem key={letter.id} value={letter.id}>
                           {letter.jobTitle} @ {letter.companyName}
