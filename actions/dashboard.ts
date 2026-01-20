@@ -217,7 +217,6 @@ IMPORTANT:
     throw new Error("Failed to parse Gemini AI response.");
   }
 };
-
 // -------------------- Enum Mappers --------------------
 function mapDemandLevel(level: DemandLevelText): "HIGH" | "MEDIUM" | "LOW" {
   switch (level.toUpperCase()) {

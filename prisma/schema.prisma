@@ -1,9 +1,276 @@
+// // generator client {
+// //   provider = "prisma-client-js"
+// // }
+
+// // datasource db {
+// //   provider = "postgresql" // Change to your database provider
+// //   url      = env("DATABASE_URL")
+// // }
+
+// // model User {
+// //   id              String           @id @default(cuid())
+// //   clerkUserId     String           @unique
+// //   email           String           @unique
+// //   name            String?
+// //   imageUrl        String?
+// //   industry        String?
+// //   IndustryInsight IndustryInsight? @relation(fields: [industry], references: [industry])
+// //   createdAt       DateTime         @default(now())
+// //   updatedAt       DateTime         @updatedAt
+// //   bio             String?
+// //   experience      Int?
+// //   skills          String[]
+
+// //   resumes          Resume?
+// //   coverLetters     CoverLetter[]
+// //   assessments      Assessment[]
+// //   careerEvaluation CareerEvaluation?
+// // }
+
+// // model Resume {
+// //   id        String   @id @default(cuid())
+// //   userId    String   @unique
+// //   user      User     @relation(fields: [userId], references: [id])
+// //   content   String
+// //   atsScore  Float?
+// //   feedback  String?
+// //   createdAt DateTime @default(now())
+// //   updatedAt DateTime @updatedAt
+// // }
+
+// // model CoverLetter {
+// //   id             String   @id @default(cuid())
+// //   userId         String
+// //   content        String
+// //   jobDescription String
+// //   companyName    String
+// //   jobTitle       String
+// //   status         String
+// //   createdAt      DateTime @default(now())
+// //   updatedAt      DateTime @updatedAt
+// //   user           User     @relation(fields: [userId], references: [id])
+// // }
+
+// // model Assessment {
+// //   id             String   @id @default(cuid())
+// //   userId         String
+// //   user           User     @relation(fields: [userId], references: [id])
+// //   quizScore      Float
+// //   questions      Json
+// //   category       String
+// //   improvementTip String?
+// //   createdAt      DateTime @default(now())
+// //   updatedAt      DateTime @updatedAt
+
+// //   @@index([userId])
+// // }
+
+// // model IndustryInsight {
+// //   id                String        @id @default(cuid())
+// //   industry          String        @unique
+// //   users             User[]
+// //   salaryRanges      Json[]
+// //   growthRate        Float
+// //   demandLevel       demandLevel
+// //   topSkills         String[]
+// //   marketOutlook     marketOutlook
+// //   keyTrends         String[]
+// //   recommendedSkills String[]
+// //   lastUpdated       DateTime
+// //   nextUpdate        DateTime
+// //   createdAt         DateTime      @default(now())
+// //   updatedAt         DateTime      @updatedAt
+
+// //   @@index([industry])
+// // }
+
+// // enum demandLevel {
+// //   HIGH
+// //   MEDIUM
+// //   LOW
+// // }
+
+// // enum marketOutlook {
+// //   POSITIVE
+// //   STABLE
+// //   NEGATIVE
+// // }
+
+// // model CareerEvaluation {
+// //   id        Int      @id @default(autoincrement())
+// //   userId    String   @unique
+// //   user      User     @relation(fields: [userId], references: [id])
+// //   result    String // stores full JSON from Gemini
+// //   createdAt DateTime @default(now())
+// //   updatedAt DateTime @updatedAt
+// // }
+
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// datasource db {
+//   provider = "postgresql"
+//   url      = env("DATABASE_URL")
+// }
+
+// model User {
+//   id              String           @id @default(cuid())
+//   clerkUserId     String           @unique
+//   email           String           @unique
+//   name            String?
+//   imageUrl        String?
+//   industry        String?
+//   IndustryInsight IndustryInsight? @relation(fields: [industry], references: [industry])
+//   createdAt       DateTime         @default(now())
+//   updatedAt       DateTime         @updatedAt
+//   bio             String?
+//   experience      Int?
+//   skills          String[]
+
+//   // EXISTING RELATIONS
+//   resumes          Resume?
+//   coverLetters     CoverLetter[]
+//   assessments      Assessment[]
+//   careerEvaluation CareerEvaluation?
+
+//   // --- NEW FIELDS FOR EMAIL SENDING (GMAIL OAUTH) ---
+//   provider       String?   // e.g. "google"
+//   refreshToken   String?   // ⚠️ Sensitive: consider encrypting before persisting
+//   canSendEmail   Boolean   @default(false)
+
+//   // relations
+//   campaigns      Campaign[]
+//   emailLogs      EmailLog[]
+// }
+
+// model Resume {
+//   id        String   @id @default(cuid())
+//   userId    String   @unique
+//   user      User     @relation(fields: [userId], references: [id])
+//   content   String
+//   atsScore  Float?
+//   feedback  String?
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+// }
+
+// model CoverLetter {
+//   id             String   @id @default(cuid())
+//   userId         String
+//   content        String
+//   jobDescription String
+//   companyName    String
+//   jobTitle       String
+//   status         String
+//   createdAt      DateTime @default(now())
+//   updatedAt      DateTime @updatedAt
+//   user           User     @relation(fields: [userId], references: [id])
+// }
+
+// model Assessment {
+//   id             String   @id @default(cuid())
+//   userId         String
+//   user           User     @relation(fields: [userId], references: [id])
+//   quizScore      Float
+//   questions      Json
+//   category       String
+//   improvementTip String?
+//   createdAt      DateTime @default(now())
+//   updatedAt      DateTime @updatedAt
+
+//   @@index([userId])
+// }
+
+// model IndustryInsight {
+//   id                String        @id @default(cuid())
+//   industry          String        @unique
+//   users             User[]
+//   salaryRanges      Json[]
+//   growthRate        Float
+//   demandLevel       demandLevel
+//   topSkills         String[]
+//   marketOutlook     marketOutlook
+//   keyTrends         String[]
+//   recommendedSkills String[]
+//   lastUpdated       DateTime
+//   nextUpdate        DateTime
+//   createdAt         DateTime      @default(now())
+//   updatedAt         DateTime      @updatedAt
+
+//   @@index([industry])
+// }
+
+// enum demandLevel {
+//   HIGH
+//   MEDIUM
+//   LOW
+// }
+
+// enum marketOutlook {
+//   POSITIVE
+//   STABLE
+//   NEGATIVE
+// }
+
+// model CareerEvaluation {
+//   id        Int      @id @default(autoincrement())
+//   userId    String   @unique
+//   user      User     @relation(fields: [userId], references: [id])
+//   result    String // stores full JSON from Gemini
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+// }
+
+// /*
+//   ========== NEW MODELS FOR BULK EMAIL ==========
+//   Campaign: keeps metadata about a bulk-send (title, subject, message, totals)
+//   EmailLog: one row per recipient with status and error (if any)
+// */
+
+// model Campaign {
+//   id         String    @id @default(cuid())
+//   title      String?
+//   subject    String
+//   message    String
+//   userId     String
+//   user       User      @relation(fields: [userId], references: [id])
+//   total      Int       @default(0)
+//   sent       Int       @default(0)
+//   failed     Int       @default(0)
+//   status     String    @default("pending") // optional: "pending"|"processing"|"completed"
+//   createdAt  DateTime  @default(now())
+//   updatedAt  DateTime  @updatedAt
+
+//   emailLogs  EmailLog[]
+// }
+
+// model EmailLog {
+//   id        String      @id @default(cuid())
+//   campaign  Campaign?   @relation(fields: [campaignId], references: [id])
+//   campaignId String?
+//   user      User        @relation(fields: [userId], references: [id])
+//   userId    String
+//   emailTo   String
+//   status    EmailStatus @default(PENDING)
+//   error     String?
+//   createdAt DateTime    @default(now())
+
+//   @@index([userId])
+//   @@index([campaignId])
+// }
+
+// enum EmailStatus {
+//   PENDING
+//   SENT
+//   FAILED
+// }
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql" // Change to your database provider
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -21,12 +288,170 @@ model User {
   experience      Int?
   skills          String[]
 
+  // EXISTING RELATIONS
   resumes          Resume?
   coverLetters     CoverLetter[]
   assessments      Assessment[]
   careerEvaluation CareerEvaluation?
+
+  // --- EMAIL SENDING FIELDS ---
+  provider     String? // e.g. "google"
+  refreshToken String? // ⚠️ Sensitive: consider encrypting before persisting
+  canSendEmail Boolean @default(false)
+
+  // --- EMAIL STATISTICS (Keep it simple) ---
+  totalEmailsSent   Int       @default(0)
+  totalEmailsFailed Int       @default(0)
+  lastEmailSentAt   DateTime?
+
+  // --- SUBSCRIPTION (Optional for future) ---
+  subscriptionPlan String? @default("free") // "free", "pro", "enterprise"
+  emailsRemaining  Int?    @default(500) // For quota tracking
+
+  // RELATIONS (Only essential)
+  campaigns Campaign[]
+  emailLogs EmailLog[]
+
+  @@index([clerkUserId])
+  @@index([email])
+  @@index([canSendEmail])
+  @@index([lastEmailSentAt])
 }
 
+// ========== EMAIL TRACKING (2 TABLES) ==========
+
+// Campaign: Tracks bulk campaigns AND single emails
+model Campaign {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Basic info
+  title  String?
+  type   CampaignType   @default(SINGLE) // SINGLE, BULK
+  status CampaignStatus @default(PENDING)
+
+  // Content (store once for bulk, reuse for each email)
+  subject String
+  content String
+
+  // Reference to cover letter (optional)
+  coverLetterId String?
+  coverLetter   CoverLetter? @relation(fields: [coverLetterId], references: [id])
+
+  // Statistics (accumulate as emails are sent)
+  totalEmails Int @default(0)
+  sentCount   Int @default(0)
+  failedCount Int @default(0)
+  openCount   Int @default(0) // Tracks unique opens
+  clickCount  Int @default(0) // Tracks unique clicks
+
+  // Timing
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  // Simple rate limit tracking
+  rateLimited    Boolean @default(false)
+  rateLimitDelay Int?    @default(2000) // 2 seconds between emails
+
+  // Error info (if whole campaign failed)
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // One campaign has many email logs
+  emailLogs EmailLog[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@index([coverLetterId])
+  @@index([rateLimited])
+}
+
+// EmailLog: Tracks EVERY individual email (single or bulk)
+model EmailLog {
+  id String @id @default(cuid())
+
+  // References
+  campaignId    String?
+  campaign      Campaign?    @relation(fields: [campaignId], references: [id])
+  userId        String
+  user          User         @relation(fields: [userId], references: [id])
+  coverLetterId String?
+  coverLetter   CoverLetter? @relation(fields: [coverLetterId], references: [id])
+
+  // Recipient info
+  toEmail   String
+  toName    String?
+  toCompany String?
+
+  // Email details
+  subject   String
+  content   String? // Optional: can be null if same as campaign content
+  messageId String? // Gmail message ID
+  threadId  String? // Gmail thread ID
+
+  // Status tracking
+  status     EmailStatus @default(PENDING)
+  statusText String? // "Queued", "Sending", "Sent", etc.
+  error      String?
+
+  // Timing
+  queuedAt  DateTime  @default(now())
+  sentAt    DateTime?
+  openedAt  DateTime?
+  clickedAt DateTime?
+
+  // Simple engagement tracking
+  opened     Boolean @default(false)
+  clicked    Boolean @default(false)
+  openCount  Int     @default(0) // Number of times opened
+  clickCount Int     @default(0) // Number of times clicked
+
+  // Performance
+  processingTimeMs Int? // Time from queue to sent (milliseconds)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([campaignId])
+  @@index([status])
+  @@index([toEmail])
+  @@index([sentAt])
+  @@index([createdAt])
+  @@index([coverLetterId])
+}
+
+// ========== ENUMS ==========
+enum CampaignType {
+  SINGLE
+  BULK
+}
+
+enum CampaignStatus {
+  DRAFT
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum EmailStatus {
+  PENDING
+  QUEUED
+  SENDING
+  SENT
+  FAILED
+  BOUNCED
+}
+
+// ========== EXISTING MODELS (keep unchanged) ==========
 model Resume {
   id        String   @id @default(cuid())
   userId    String   @unique
@@ -49,6 +474,14 @@ model CoverLetter {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   user           User     @relation(fields: [userId], references: [id])
+
+  // Link to campaigns/email logs
+  campaigns Campaign[]
+  emailLogs EmailLog[]
+
+  @@index([userId])
+  @@index([companyName])
+  @@index([jobTitle])
 }
 
 model Assessment {
@@ -84,6 +517,15 @@ model IndustryInsight {
   @@index([industry])
 }
 
+model CareerEvaluation {
+  id        Int      @id @default(autoincrement())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  result    String // stores full JSON from Gemini
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum demandLevel {
   HIGH
   MEDIUM
@@ -94,13 +536,4 @@ enum marketOutlook {
   POSITIVE
   STABLE
   NEGATIVE
-}
-
-model CareerEvaluation {
-  id        Int      @id @default(autoincrement())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
-  result    String // stores full JSON from Gemini
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }

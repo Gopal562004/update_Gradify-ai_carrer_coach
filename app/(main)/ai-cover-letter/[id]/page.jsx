@@ -144,7 +144,7 @@ export default function ViewCoverLetter() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 text-black">
           {/* Main Editor */}
           <div className="lg:col-span-3">
             <Card className="bg-white border-gray-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -173,7 +173,7 @@ export default function ViewCoverLetter() {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g., Software Engineer Application - John Doe"
-                    className="border-gray-300 focus:border-blue-500"
+                    className="border-gray-300 focus:border-blue-500 text-black"
                   />
                 </div>
 
