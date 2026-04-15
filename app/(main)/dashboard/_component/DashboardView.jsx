@@ -239,8 +239,12 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import UsageCard from "@/components/UsageCard";
 
-export default function IndustryInsightsDashboard({ insights }) {
+import Link from "next/link";
+import { FileText, ClipboardList } from "lucide-react";
+
+export default function IndustryInsightsDashboard({ insights, userStats, careerInsight }) {
   const getDemandLevelConfig = (level) => {
     const config = {
       high: {
@@ -349,6 +353,96 @@ export default function IndustryInsightsDashboard({ insights }) {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Subscription Usage Card */}
+        <UsageCard />
+
+        {/* --- ALL RECORDED DATA & AI CAREER INSIGHTS WIDGET --- */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* User Performance Stats */}
+          <Card className="col-span-1 border border-indigo-100 shadow-sm bg-gradient-to-br from-indigo-50 to-white hover:shadow-md transition-all">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2 text-indigo-900">
+                <Target className="w-5 h-5 text-indigo-500" />
+                Performance Log
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center py-2 border-b border-indigo-100/50">
+                  <div className="flex items-center gap-2 text-gray-600 font-medium text-sm">
+                    <FileText className="w-4 h-4 text-blue-500" /> Resume ATS Score
+                  </div>
+                  <span className="font-bold text-gray-900">{userStats?.atsScore ? `${userStats.atsScore}%` : "N/A"}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-indigo-100/50">
+                  <div className="flex items-center gap-2 text-gray-600 font-medium text-sm">
+                    <ClipboardList className="w-4 h-4 text-emerald-500" /> Avg Assessment
+                  </div>
+                  <span className="font-bold text-gray-900">{userStats?.avgAssessmentScore ? `${userStats.avgAssessmentScore}%` : "N/A"}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <div className="flex items-center gap-2 text-gray-600 font-medium text-sm">
+                    <Brain className="w-4 h-4 text-purple-500" /> Total Prep Tests
+                  </div>
+                  <span className="font-bold text-gray-900">{userStats?.assessmentsCount || 0}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* AI Career Insights Summary */}
+          <Card className="col-span-1 lg:col-span-2 shadow-sm border border-blue-100 bg-white relative overflow-hidden group">
+             <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none transition-transform group-hover:scale-110">
+                <Sparkles className="w-32 h-32 text-blue-500" />
+             </div>
+             <CardHeader className="pb-2 relative z-10">
+               <div className="flex justify-between items-center">
+                 <CardTitle className="text-lg flex items-center gap-2 text-blue-900">
+                   <Sparkles className="w-5 h-5 text-amber-500" />
+                   AI Career Insights
+                 </CardTitle>
+                 {careerInsight && (
+                  <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200">Active</Badge>
+                 )}
+               </div>
+             </CardHeader>
+             <CardContent className="relative z-10">
+               {careerInsight ? (
+                 <div className="space-y-3">
+                   <p className="text-sm text-gray-600 leading-relaxed border-l-2 border-amber-300 pl-3 italic">
+                     "{careerInsight.summary}"
+                   </p>
+                   <div className="grid grid-cols-2 gap-4 mt-4">
+                      <div>
+                        <span className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Target Role</span>
+                        <div className="text-sm font-medium text-gray-900">{careerInsight.careerPathAnalytics.currentPath || "N/A"}</div>
+                      </div>
+                      <div>
+                        <span className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Missing Skill</span>
+                        <div className="text-sm font-medium text-red-600">{careerInsight.skillGapAnalysis.missingSkills[0] || "None detected"}</div>
+                      </div>
+                   </div>
+                   <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+                      <Link href="/career-insights" className="text-sm text-blue-600 font-bold hover:text-blue-800 flex items-center gap-1 group">
+                        View Full Report
+                        <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                      </Link>
+                   </div>
+                 </div>
+               ) : (
+                 <div className="flex flex-col items-center justify-center py-6">
+                    <p className="text-gray-500 text-sm md:text-base text-center mb-4">No comprehensive AI career insights generated yet.</p>
+                    <Link href="/career-insights">
+                      <button className="text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 shadow-md hover:shadow-lg transition-all">
+                         <Sparkles className="w-4 h-4" /> Generate Insights
+                      </button>
+                    </Link>
+                 </div>
+               )}
+             </CardContent>
+          </Card>
         </div>
 
         {/* Key Metrics Grid */}

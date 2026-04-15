@@ -3,9 +3,10 @@
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { checkFeatureAccess, consumeToken } from "./subscription";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
 async function getInternalUser() {
   const { userId: clerkUserId } = await auth();
@@ -21,6 +22,14 @@ async function getInternalUser() {
 
 export async function generateQuiz() {
   const user = await getInternalUser();
+
+  // 🔒 Check subscription token access
+  const access = await checkFeatureAccess("interview");
+  if (!access.allowed) {
+    throw new Error(
+      `UPGRADE_REQUIRED:You've used all ${access.limit} interview practice sessions on your ${access.planName} plan. Upgrade to continue.|interview|${access.plan}`
+    );
+  }
 
   const prompt = `
     Generate 10 technical interview questions for a ${user.industry}${
@@ -46,6 +55,10 @@ export async function generateQuiz() {
       .replace(/```(?:json)?/g, "")
       .trim();
     const parsed = JSON.parse(cleaned);
+
+    // ✅ Consume token after successful generation
+    await consumeToken("interview");
+
     return parsed.questions;
   } catch (error) {
     console.error("❌ Error generating quiz:", error);

@@ -479,9 +479,10 @@ import {
   Star,
   User,
   LogIn,
-  UserPlus,
   ChevronDown,
   ExternalLink,
+  TrendingUp,
+  UserPlus,
 } from "lucide-react";
 import {
   SignInButton,
@@ -541,6 +542,15 @@ const HeaderClient = () => {
       color: "red",
       category: "platform",
     },
+    // ... existing ones
+    {
+      name: "Career Insights",
+      href: "/career-insights",
+      icon: TrendingUp,
+      description: "AI-driven profile analytics",
+      color: "orange",
+      category: "discovery",
+    },
   ];
 
   const getColorClasses = (color: string) => {
@@ -550,6 +560,7 @@ const HeaderClient = () => {
       purple: "bg-purple-100 text-purple-600",
       indigo: "bg-indigo-100 text-indigo-600",
       red: "bg-red-100 text-red-600",
+      orange: "bg-orange-100 text-orange-600",
     };
     return (
       colorMap[color as keyof typeof colorMap] || "bg-gray-100 text-gray-600"
@@ -678,8 +689,19 @@ const HeaderClient = () => {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* User Profile */}
-        <div className="border-l border-gray-200 pl-3 ml-1">
+        {/* User Profile Settings Button */}
+        <Link href="/profile">
+          <Button
+            variant="ghost"
+            className="flex items-center gap-2 text-sm text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 transition-all duration-200"
+          >
+            <User className="w-4 h-4" />
+            <span className="hidden lg:block font-medium">Profile</span>
+          </Button>
+        </Link>
+
+        {/* User Profile Clerk Avatar */}
+        <div className="border-l border-gray-200 pl-3 ml-1 flex items-center justify-center">
           <UserButton
             afterSignOutUrl="/"
             appearance={{

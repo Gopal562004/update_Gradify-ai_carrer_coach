@@ -3,6 +3,7 @@
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { checkFeatureAccess, consumeToken } from "./subscription";
 
 import { google } from "googleapis";
 
@@ -14,7 +15,7 @@ import { google } from "googleapis";
  * @param {string} message - Email body
  */
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
 /**
  * ✅ Generate a new cover letter using Gemini AI
@@ -26,6 +27,14 @@ export async function generateCoverLetter({
 }) {
   const { userId } = await auth();
   if (!userId) throw new Error("User not authenticated");
+
+  // 🔒 Check subscription token access
+  const access = await checkFeatureAccess("coverLetter");
+  if (!access.allowed) {
+    throw new Error(
+      `UPGRADE_REQUIRED:You've used all ${access.limit} cover letter generations on your ${access.planName} plan. Upgrade to continue.|coverLetter|${access.plan}`
+    );
+  }
 
   const dbUser = await db.user.findUnique({
     where: { clerkUserId: userId },
@@ -60,6 +69,9 @@ export async function generateCoverLetter({
       status: "draft",
     },
   });
+
+  // ✅ Consume token after successful generation
+  await consumeToken("coverLetter");
 
   return newLetter;
 }

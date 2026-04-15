@@ -29,7 +29,10 @@ export async function GET(req) {
       },
     });
 
-    return Response.redirect("http://localhost:3000/ai-cover-letter/email");
+    // return Response.redirect("http://localhost:3000/ai-cover-letter/email");
+    return Response.redirect(
+      `${process.env.NEXT_PUBLIC_APP_URL}/ai-cover-letter/email`,
+    );
   } catch (error) {
     console.error("Google OAuth Error:", error);
     return Response.json({ error: "OAuth failed" }, { status: 500 });

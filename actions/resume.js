@@ -3,13 +3,22 @@
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { checkFeatureAccess, consumeToken } from "./subscription";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
 export async function generateResumeFromInput(input) {
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) throw new Error("Unauthorized");
+
+  // 🔒 Check subscription token access
+  const access = await checkFeatureAccess("resume");
+  if (!access.allowed) {
+    throw new Error(
+      `UPGRADE_REQUIRED:You've used all ${access.limit} resume generations on your ${access.planName} plan. Upgrade to continue.|resume|${access.plan}`
+    );
+  }
 
   // 🔍 Get internal user ID using clerkUserId
   const user = await db.user.findUnique({
@@ -77,6 +86,9 @@ IMPORTANT: Return ONLY the valid JSON string. No extra commentary.
           content,
         },
       });
+
+  // ✅ Consume token after successful generation
+  await consumeToken("resume");
 
   return resume;
 }
@@ -328,6 +340,14 @@ export async function checkAtsScoreFromText(text) {
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) throw new Error("Unauthorized");
 
+  // 🔒 Check subscription token access for ATS
+  const access = await checkFeatureAccess("atsCheck");
+  if (!access.allowed) {
+    throw new Error(
+      `UPGRADE_REQUIRED:You've used all ${access.limit} ATS checks on your ${access.planName} plan. Upgrade to continue.|atsCheck|${access.plan}`
+    );
+  }
+
   // Find the user in your DB using Clerk ID
   const user = await db.user.findUnique({
     where: { clerkUserId },
@@ -398,6 +418,9 @@ Return your answer in this format:
       feedback: suggestions.join(" • "),
     },
   });
+
+  // ✅ Consume ATS check token
+  await consumeToken("atsCheck");
 
   return {
     score: finalScore,

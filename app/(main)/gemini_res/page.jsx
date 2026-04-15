@@ -1113,7 +1113,7 @@
 // //             </motion.div>
 // //           </AnimatePresence>
 // //         )}
-        
+
 // //       </div>
 // //     </div>
 // //   );
@@ -1692,12 +1692,14 @@
 //     </div>
 //   );
 // }
+
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   generateQuiz,
+  generateProfileRoadmap,
   evaluateAnswers,
   getCareerEvaluation,
   updateIndustryInsight,
@@ -1863,6 +1865,7 @@ export default function CareerPage() {
   const [loading, setLoading] = useState(false);
   const [selectedField, setSelectedField] = useState(null);
   const [previousResult, setPreviousResult] = useState(null);
+  const [isAnswering, setIsAnswering] = useState(false);
 
   const [currentPart, setCurrentPart] = useState("partA");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -1903,11 +1906,30 @@ export default function CareerPage() {
     }
   };
 
+  const handleGenerateProfile = async () => {
+    setLoading(true);
+    try {
+      const res = await generateProfileRoadmap();
+      setResult(res);
+      setSelectedField(res?.topFields?.[0] || null);
+      setStep("result");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAnswer = (option) => {
+    if (loading || isAnswering || !quiz) return;
+
     const q =
       currentPart === "partA"
         ? quiz.partA[currentIndex]
         : quiz.partB[currentIndex];
+    if (!q) return;
+
+    setIsAnswering(true);
     setAnswers((prev) => ({
       ...prev,
       [currentPart]: { ...(prev[currentPart] || {}), [q.id]: option },
@@ -1924,6 +1946,7 @@ export default function CareerPage() {
       } else {
         handleSubmit();
       }
+      setIsAnswering(false);
     }, 120);
   };
 
@@ -2010,23 +2033,39 @@ export default function CareerPage() {
                 Find Your Career Path
               </h2>
               <p className="mx-auto max-w-2xl text-gray-600 text-lg leading-relaxed">
-                Take a short two-part quiz to discover your ideal IT career path
-                based on your{" "}
-                <span className="text-blue-600 font-semibold">interests</span>{" "}
-                and{" "}
-                <span className="text-blue-600 font-semibold">aptitude</span>.
-                Get personalized roadmaps with projects, internships, and career
-                guidance.
+                Choose how to build your career roadmap:
+                <span className="text-blue-600 font-semibold">
+                  {" "}
+                  saved profile + resume data
+                </span>
+                , or a short quiz plus your profile and assessment marks.
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div className="grid gap-4 md:grid-cols-2">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleGenerateProfile}
+                disabled={loading}
+                className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-6 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Generating from Profile...
+                  </>
+                ) : (
+                  "Generate from Profile"
+                )}
+              </motion.button>
+
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleStart}
                 disabled={loading}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
+                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -2035,16 +2074,16 @@ export default function CareerPage() {
                   </>
                 ) : (
                   <>
-                    Start Career Quiz
+                    Start Quiz + Profile
                     <ChevronRight className="h-5 w-5" />
                   </>
                 )}
               </motion.button>
+            </div>
 
-              <div className="flex items-center gap-3 text-sm text-gray-500">
-                <Clock className="h-4 w-4" />
-                <span>10-15 minutes</span>
-              </div>
+            <div className="flex items-center gap-3 text-sm text-gray-500">
+              <Clock className="h-4 w-4" />
+              <span>10-15 minutes for the quiz option</span>
             </div>
 
             {/* Previous Result Section */}
@@ -2142,7 +2181,8 @@ export default function CareerPage() {
                             whileHover={{ scale: 1.02, y: -2 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => handleAnswer(opt)}
-                            className="rounded-xl border-2 border-gray-200 bg-white px-6 py-4 text-left text-gray-700 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:shadow-md"
+                            disabled={loading || isAnswering}
+                            className="rounded-xl border-2 border-gray-200 bg-white px-6 py-4 text-left text-gray-700 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <div className="flex items-center gap-3">
                               <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-gray-300">
@@ -2264,7 +2304,7 @@ export default function CareerPage() {
                         >
                           {f}
                         </button>
-                      )
+                      ),
                     )}
                   </div>
                   <div className="mt-6 text-sm text-gray-500 flex items-center gap-2">

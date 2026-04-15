@@ -287,6 +287,12 @@ model User {
   bio             String?
   experience      Int?
   skills          String[]
+  
+  // --- PROFILE LINKS & EXTERNAL DOCS ---
+  linkedinUrl        String?
+  githubUrl          String?
+  portfolioUrl       String?
+  externalResumeText String?
 
   // EXISTING RELATIONS
   resumes          Resume?
@@ -304,9 +310,11 @@ model User {
   totalEmailsFailed Int       @default(0)
   lastEmailSentAt   DateTime?
 
-  // --- SUBSCRIPTION (Optional for future) ---
-  subscriptionPlan String? @default("free") // "free", "pro", "enterprise"
-  emailsRemaining  Int?    @default(500) // For quota tracking
+  // --- SUBSCRIPTION RELATION ---
+  subscription Subscription?
+
+  // NEW: CAREER INSIGHTS
+  careerInsight CareerInsight?
 
   // RELATIONS (Only essential)
   campaigns Campaign[]
@@ -316,6 +324,60 @@ model User {
   @@index([email])
   @@index([canSendEmail])
   @@index([lastEmailSentAt])
+}
+
+// ========== SUBSCRIPTION & TOKEN SYSTEM ==========
+model Subscription {
+  id              String        @id @default(cuid())
+  userId          String        @unique
+  user            User          @relation(fields: [userId], references: [id])
+  plan            PlanType      @default(FREE)
+  billingPeriod   BillingPeriod @default(MONTHLY)
+  status          SubStatus     @default(ACTIVE)
+
+  // Token limits per billing period (-1 = unlimited)
+  resumeLimit      Int @default(2)
+  coverLetterLimit Int @default(1)
+  interviewLimit   Int @default(3)
+  atsCheckLimit    Int @default(2)
+  careerEvalLimit  Int @default(1)
+
+  // Current period usage counters
+  resumesUsed      Int @default(0)
+  coverLettersUsed Int @default(0)
+  interviewsUsed   Int @default(0)
+  atsChecksUsed    Int @default(0)
+  careerEvalsUsed  Int @default(0)
+
+  // Billing dates
+  currentPeriodStart DateTime  @default(now())
+  currentPeriodEnd   DateTime?
+  trialEndsAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([plan])
+  @@index([status])
+}
+
+enum PlanType {
+  FREE
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum BillingPeriod {
+  MONTHLY
+  ANNUAL
+}
+
+enum SubStatus {
+  ACTIVE
+  TRIALING
+  CANCELLED
+  EXPIRED
 }
 
 // ========== EMAIL TRACKING (2 TABLES) ==========
@@ -536,4 +598,16 @@ enum marketOutlook {
   POSITIVE
   STABLE
   NEGATIVE
+}
+
+// ========== NEW: COMPREHENSIVE CAREER INSIGHTS ==========
+model CareerInsight {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  insights  Json     // Full JSON object holding the generated insights
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }

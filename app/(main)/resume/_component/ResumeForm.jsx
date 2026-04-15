@@ -26,6 +26,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import UpgradeModal from "@/components/UpgradeModal";
 
 const ResumeForm = () => {
   const [formData, setFormData] = useState({
@@ -43,6 +44,9 @@ const ResumeForm = () => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeFeature, setUpgradeFeature] = useState(null);
+  const [upgradePlan, setUpgradePlan] = useState(null);
 
   const handleChange = (e, index, key, section) => {
     if (section) {
@@ -86,19 +90,24 @@ const ResumeForm = () => {
       .filter(Boolean);
 
     try {
-      await toast.promise(
-        generateResumeFromInput({
-          role,
-          skills: skillsArray,
-          experience: experienceText,
-          education: educationText,
-        }),
-        {
-          loading: "Generating resume...",
-          success: "Resume generated and saved!",
-          error: "Failed to generate resume",
-        }
-      );
+      await generateResumeFromInput({
+        role,
+        skills: skillsArray,
+        experience: experienceText,
+        education: educationText,
+      });
+      toast.success("Resume generated and saved!");
+    } catch (err) {
+      const msg = err.message || "";
+      if (msg.startsWith("UPGRADE_REQUIRED:")) {
+        const parts = msg.replace("UPGRADE_REQUIRED:", "").split("|");
+        toast.error(parts[0] || "You've reached your limit.");
+        setUpgradeFeature(parts[1] || "resume");
+        setUpgradePlan(parts[2] || "FREE");
+        setShowUpgradeModal(true);
+      } else {
+        toast.error("Failed to generate resume");
+      }
     } finally {
       setLoading(false);
     }
@@ -505,6 +514,14 @@ const ResumeForm = () => {
             </Button>
           </div>
         </form>
+
+        {/* Upgrade Modal */}
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          feature={upgradeFeature}
+          currentPlan={upgradePlan}
+        />
       </div>
     </div>
   );

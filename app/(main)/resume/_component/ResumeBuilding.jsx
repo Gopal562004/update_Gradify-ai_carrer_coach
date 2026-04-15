@@ -1,595 +1,676 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getUserResume, updateResume } from "@/actions/resume";
 import { toast } from "react-hot-toast";
 import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 import {
   Download,
   Edit,
   Save,
   Eye,
   LayoutTemplate,
-  Plus,
-  X,
   Palette,
+  Type,
+  Bold,
+  Italic,
+  ZoomIn,
+  ZoomOut,
+  Undo,
+  MousePointer,
+  Sparkles,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 
+// ========== 6 TEMPLATE STYLES ==========
+const TEMPLATES = [
+  {
+    id: "modern-blue",
+    name: "Modern Blue",
+    color: "from-blue-500 to-blue-600",
+    accent: "#2563eb",
+    headingFont: "'Segoe UI', sans-serif",
+    bodyFont: "'Segoe UI', sans-serif",
+  },
+  {
+    id: "classic-black",
+    name: "Classic Black",
+    color: "from-gray-700 to-gray-900",
+    accent: "#1f2937",
+    headingFont: "'Georgia', serif",
+    bodyFont: "'Times New Roman', serif",
+  },
+  {
+    id: "creative-purple",
+    name: "Creative Purple",
+    color: "from-purple-500 to-pink-500",
+    accent: "#7c3aed",
+    headingFont: "'Poppins', sans-serif",
+    bodyFont: "'Inter', sans-serif",
+  },
+  {
+    id: "minimal-green",
+    name: "Minimal Green",
+    color: "from-emerald-500 to-emerald-600",
+    accent: "#059669",
+    headingFont: "'Helvetica', sans-serif",
+    bodyFont: "'Helvetica', sans-serif",
+  },
+  {
+    id: "executive-gold",
+    name: "Executive Gold",
+    color: "from-amber-500 to-amber-600",
+    accent: "#b45309",
+    headingFont: "'Palatino', serif",
+    bodyFont: "'Palatino', serif",
+  },
+  {
+    id: "tech-dark",
+    name: "Tech Dark",
+    color: "from-slate-700 to-slate-900",
+    accent: "#0ea5e9",
+    headingFont: "'Consolas', monospace",
+    bodyFont: "'Segoe UI', sans-serif",
+  },
+];
+
+// ========== TEMPLATE RENDER COMPONENT ==========
+function ResumeCanvas({ resume, template, editingField, onFieldClick, onFieldChange, canvasRef }) {
+  const t = template;
+  const data = resume || {};
+
+  const editableProps = (fieldName) => ({
+    onClick: (e) => {
+      e.stopPropagation();
+      onFieldClick(fieldName);
+    },
+    contentEditable: editingField === fieldName,
+    suppressContentEditableWarning: true,
+    onBlur: (e) => onFieldChange(fieldName, e.currentTarget.innerText),
+    style: {
+      outline: editingField === fieldName ? `2px solid ${t.accent}` : "none",
+      borderRadius: editingField === fieldName ? "4px" : "0",
+      padding: editingField === fieldName ? "2px 4px" : "0",
+      cursor: "pointer",
+      backgroundColor: editingField === fieldName ? `${t.accent}08` : "transparent",
+      transition: "all 0.2s ease",
+    },
+  });
+
+  const listEditableProps = (section, index) => ({
+    onClick: (e) => {
+      e.stopPropagation();
+      onFieldClick(`${section}-${index}`);
+    },
+    contentEditable: editingField === `${section}-${index}`,
+    suppressContentEditableWarning: true,
+    onBlur: (e) => {
+      const items = [...(data[section] || [])];
+      items[index] = e.currentTarget.innerText;
+      onFieldChange(section, items);
+    },
+    style: {
+      outline: editingField === `${section}-${index}` ? `2px solid ${t.accent}` : "none",
+      borderRadius: editingField === `${section}-${index}` ? "4px" : "0",
+      padding: editingField === `${section}-${index}` ? "2px 4px" : "0",
+      cursor: "pointer",
+      transition: "all 0.2s ease",
+    },
+  });
+
+  // Render the correct template layout
+  const isModern = t.id === "modern-blue" || t.id === "creative-purple" || t.id === "tech-dark";
+  const isClassic = t.id === "classic-black" || t.id === "executive-gold";
+  const isMinimal = t.id === "minimal-green";
+
+  return (
+    <div
+      ref={canvasRef}
+      id="resume-canvas"
+      onClick={() => onFieldClick(null)}
+      style={{
+        width: "210mm",
+        minHeight: "297mm",
+        background: t.id === "tech-dark" ? "#0f172a" : "white",
+        fontFamily: t.bodyFont,
+        color: t.id === "tech-dark" ? "#e2e8f0" : "#1f2937",
+        padding: 0,
+        boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* ===== HEADER ===== */}
+      <div
+        style={{
+          background: isModern
+            ? `linear-gradient(135deg, ${t.accent}, ${t.accent}dd)`
+            : isClassic
+            ? t.accent
+            : isMinimal
+            ? "white"
+            : t.accent,
+          color: isMinimal ? t.accent : "white",
+          padding: isMinimal ? "30px 40px" : "35px 40px",
+          borderBottom: isMinimal ? `3px solid ${t.accent}` : "none",
+        }}
+      >
+        <h1
+          {...editableProps("contactInfo.name")}
+          style={{
+            ...editableProps("contactInfo.name").style,
+            fontSize: "28px",
+            fontWeight: "bold",
+            fontFamily: t.headingFont,
+            letterSpacing: t.id === "tech-dark" ? "3px" : "1px",
+            marginBottom: "6px",
+            color: isMinimal ? t.accent : "white",
+          }}
+        >
+          {data.contactInfo?.name || data.name || "YOUR NAME"}
+        </h1>
+        <div
+          style={{
+            fontSize: "13px",
+            opacity: 0.9,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "12px",
+            color: isMinimal ? "#6b7280" : "rgba(255,255,255,0.85)",
+          }}
+        >
+          {(data.contactInfo?.email || data.email) && (
+            <span>{data.contactInfo?.email || data.email}</span>
+          )}
+          {(data.contactInfo?.phone || data.phone) && (
+            <span>• {data.contactInfo?.phone || data.phone}</span>
+          )}
+          {(data.contactInfo?.linkedin || data.linkedin) && (
+            <span>• {data.contactInfo?.linkedin || data.linkedin}</span>
+          )}
+        </div>
+      </div>
+
+      {/* ===== BODY ===== */}
+      <div style={{ padding: "30px 40px" }}>
+        {/* Summary */}
+        {data.summary && (
+          <div style={{ marginBottom: "24px" }}>
+            <h2
+              style={{
+                fontSize: "15px",
+                fontWeight: "bold",
+                fontFamily: t.headingFont,
+                color: t.id === "tech-dark" ? t.accent : t.accent,
+                textTransform: "uppercase",
+                letterSpacing: "2px",
+                borderBottom: `2px solid ${t.accent}`,
+                paddingBottom: "6px",
+                marginBottom: "12px",
+              }}
+            >
+              Professional Summary
+            </h2>
+            <p
+              {...editableProps("summary")}
+              style={{
+                ...editableProps("summary").style,
+                fontSize: "13px",
+                lineHeight: "1.7",
+                color: t.id === "tech-dark" ? "#cbd5e1" : "#374151",
+              }}
+            >
+              {data.summary}
+            </p>
+          </div>
+        )}
+
+        {/* Skills */}
+        {data.skills && data.skills.length > 0 && (
+          <div style={{ marginBottom: "24px" }}>
+            <h2
+              style={{
+                fontSize: "15px",
+                fontWeight: "bold",
+                fontFamily: t.headingFont,
+                color: t.accent,
+                textTransform: "uppercase",
+                letterSpacing: "2px",
+                borderBottom: `2px solid ${t.accent}`,
+                paddingBottom: "6px",
+                marginBottom: "12px",
+              }}
+            >
+              Technical Skills
+            </h2>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              {data.skills.map((skill, i) => (
+                <span
+                  key={i}
+                  {...listEditableProps("skills", i)}
+                  style={{
+                    ...listEditableProps("skills", i).style,
+                    padding: "4px 12px",
+                    borderRadius: t.id === "tech-dark" ? "3px" : "16px",
+                    fontSize: "12px",
+                    fontWeight: "500",
+                    background:
+                      t.id === "tech-dark"
+                        ? "rgba(14,165,233,0.15)"
+                        : `${t.accent}12`,
+                    color: t.accent,
+                    border: `1px solid ${t.accent}30`,
+                  }}
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Experience */}
+        {data.experience && data.experience.length > 0 && (
+          <div style={{ marginBottom: "24px" }}>
+            <h2
+              style={{
+                fontSize: "15px",
+                fontWeight: "bold",
+                fontFamily: t.headingFont,
+                color: t.accent,
+                textTransform: "uppercase",
+                letterSpacing: "2px",
+                borderBottom: `2px solid ${t.accent}`,
+                paddingBottom: "6px",
+                marginBottom: "12px",
+              }}
+            >
+              Professional Experience
+            </h2>
+            {data.experience.map((exp, i) => (
+              <div
+                key={i}
+                style={{
+                  marginBottom: "14px",
+                  paddingLeft: isModern ? "14px" : "0",
+                  borderLeft: isModern ? `3px solid ${t.accent}40` : "none",
+                }}
+              >
+                <p
+                  {...listEditableProps("experience", i)}
+                  style={{
+                    ...listEditableProps("experience", i).style,
+                    fontSize: "13px",
+                    lineHeight: "1.6",
+                    color: t.id === "tech-dark" ? "#cbd5e1" : "#374151",
+                  }}
+                >
+                  {exp}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Education */}
+        {data.education && data.education.length > 0 && (
+          <div style={{ marginBottom: "24px" }}>
+            <h2
+              style={{
+                fontSize: "15px",
+                fontWeight: "bold",
+                fontFamily: t.headingFont,
+                color: t.accent,
+                textTransform: "uppercase",
+                letterSpacing: "2px",
+                borderBottom: `2px solid ${t.accent}`,
+                paddingBottom: "6px",
+                marginBottom: "12px",
+              }}
+            >
+              Education
+            </h2>
+            {data.education.map((edu, i) => (
+              <div key={i} style={{ marginBottom: "10px" }}>
+                <p
+                  {...listEditableProps("education", i)}
+                  style={{
+                    ...listEditableProps("education", i).style,
+                    fontSize: "13px",
+                    lineHeight: "1.6",
+                    color: t.id === "tech-dark" ? "#cbd5e1" : "#374151",
+                  }}
+                >
+                  {edu}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Projects */}
+        {data.projects && data.projects.length > 0 && (
+          <div style={{ marginBottom: "24px" }}>
+            <h2
+              style={{
+                fontSize: "15px",
+                fontWeight: "bold",
+                fontFamily: t.headingFont,
+                color: t.accent,
+                textTransform: "uppercase",
+                letterSpacing: "2px",
+                borderBottom: `2px solid ${t.accent}`,
+                paddingBottom: "6px",
+                marginBottom: "12px",
+              }}
+            >
+              Projects
+            </h2>
+            {data.projects.map((proj, i) => (
+              <div
+                key={i}
+                style={{
+                  marginBottom: "14px",
+                  paddingLeft: isModern ? "14px" : "0",
+                  borderLeft: isModern ? `3px solid ${t.accent}40` : "none",
+                }}
+              >
+                <p
+                  {...listEditableProps("projects", i)}
+                  style={{
+                    ...listEditableProps("projects", i).style,
+                    fontSize: "13px",
+                    lineHeight: "1.6",
+                    color: t.id === "tech-dark" ? "#cbd5e1" : "#374151",
+                  }}
+                >
+                  {proj}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ========== MAIN COMPONENT ==========
 const ResumeBuilding = () => {
   const [resume, setResume] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
-  const [editedResume, setEditedResume] = useState(null);
-  const [selectedTemplate, setSelectedTemplate] = useState("modern");
-  const [activeSection, setActiveSection] = useState(null);
-
-  const templates = [
-    {
-      id: "modern",
-      name: "Modern",
-      color: "bg-gradient-to-r from-blue-500 to-blue-600",
-    },
-    {
-      id: "professional",
-      name: "Professional",
-      color: "bg-gradient-to-r from-gray-700 to-gray-900",
-    },
-    {
-      id: "creative",
-      name: "Creative",
-      color: "bg-gradient-to-r from-purple-500 to-pink-500",
-    },
-    {
-      id: "minimal",
-      name: "Minimal",
-      color: "bg-gradient-to-r from-green-500 to-green-600",
-    },
-  ];
+  const [saving, setSaving] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES[0]);
+  const [editingField, setEditingField] = useState(null);
+  const [zoom, setZoom] = useState(0.7);
+  const [hasChanges, setHasChanges] = useState(false);
+  const canvasRef = useRef(null);
 
   useEffect(() => {
     const fetchResume = async () => {
       try {
         const data = await getUserResume();
         setResume(data);
-        setEditedResume(data);
       } catch (error) {
-        toast.error("Failed to load resume");
-        console.error("Resume error:", error);
+        console.error("Resume load error:", error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchResume();
   }, []);
 
-  const handleEdit = () => {
-    setEditing(true);
-    setEditedResume({ ...resume });
-  };
+  const handleFieldClick = useCallback((fieldName) => {
+    setEditingField(fieldName);
+  }, []);
+
+  const handleFieldChange = useCallback((fieldName, value) => {
+    setResume((prev) => {
+      if (!prev) return prev;
+      // Handle nested fields like "contactInfo.name"
+      if (fieldName.includes(".")) {
+        const [parent, child] = fieldName.split(".");
+        return {
+          ...prev,
+          [parent]: { ...(prev[parent] || {}), [child]: value },
+        };
+      }
+      // Handle array fields (already receives full array from list editable)
+      if (Array.isArray(value)) {
+        return { ...prev, [fieldName]: value };
+      }
+      return { ...prev, [fieldName]: value };
+    });
+    setHasChanges(true);
+    setEditingField(null);
+  }, []);
 
   const handleSave = async () => {
+    if (!resume) return;
+    setSaving(true);
     try {
-      await updateResume(editedResume);
-      setResume(editedResume);
-      setEditing(false);
-      toast.success("Resume updated successfully!");
-    } catch (error) {
-      toast.error("Failed to update resume");
+      await updateResume(resume);
+      toast.success("Resume saved successfully!");
+      setHasChanges(false);
+    } catch (err) {
+      toast.error("Failed to save resume");
+      console.error(err);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleCancel = () => {
-    setEditedResume(resume);
-    setEditing(false);
-    setActiveSection(null);
-  };
+  const handleDownloadPDF = async () => {
+    if (!canvasRef.current) return;
+    setDownloading(true);
+    setEditingField(null);
 
-  const handleSectionEdit = (section, value) => {
-    setEditedResume((prev) => ({
-      ...prev,
-      [section]: value,
-    }));
-  };
+    try {
+      // Wait for content editable to blur
+      await new Promise((r) => setTimeout(r, 200));
 
-  const addItem = (section) => {
-    const newItem = "";
-    setEditedResume((prev) => ({
-      ...prev,
-      [section]: [...(prev[section] || []), newItem],
-    }));
-  };
-
-  const removeItem = (section, index) => {
-    setEditedResume((prev) => ({
-      ...prev,
-      [section]: prev[section].filter((_, i) => i !== index),
-    }));
-  };
-
-  const updateItem = (section, index, value) => {
-    setEditedResume((prev) => ({
-      ...prev,
-      [section]: prev[section].map((item, i) => (i === index ? value : item)),
-    }));
-  };
-
-  const downloadPDF = () => {
-    if (!resume) return;
-
-    const doc = new jsPDF();
-    let y = 20;
-
-    // Header
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(20);
-    doc.text("RESUME", 105, y, { align: "center" });
-    y += 15;
-
-    const addSection = (title, items) => {
-      if (!items || items.length === 0) return;
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.text(title.toUpperCase(), 20, y);
-      y += 8;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-
-      doc.line(20, y - 2, 190, y - 2);
-      y += 5;
-
-      items.forEach((item) => {
-        const lines = doc.splitTextToSize(`• ${item}`, 170);
-        lines.forEach((line) => {
-          if (y >= 280) {
-            doc.addPage();
-            y = 20;
-          }
-          doc.text(line, 25, y);
-          y += 5;
-        });
-        y += 2;
+      const canvas = await html2canvas(canvasRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: selectedTemplate.id === "tech-dark" ? "#0f172a" : "#ffffff",
+        logging: false,
+        width: canvasRef.current.scrollWidth,
+        height: canvasRef.current.scrollHeight,
       });
 
-      y += 8;
-    };
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
 
-    if (resume.summary) addSection("PROFESSIONAL SUMMARY", [resume.summary]);
-    if (resume.skills) addSection("SKILLS", resume.skills);
-    if (resume.experience) addSection("EXPERIENCE", resume.experience);
-    if (resume.education) addSection("EDUCATION", resume.education);
-    if (resume.projects) addSection("PROJECTS", resume.projects);
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const finalWidth = imgWidth * ratio;
+      const finalHeight = imgHeight * ratio;
 
-    doc.save("professional_resume.pdf");
-  };
+      pdf.addImage(imgData, "PNG", 0, 0, finalWidth, finalHeight);
 
-  const renderTemplatePreview = () => {
-    const templateStyles = {
-      modern: "bg-white border-2 border-blue-200 shadow-lg",
-      professional: "bg-gray-50 border-2 border-gray-300 shadow-md",
-      creative:
-        "bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 shadow-lg",
-      minimal: "bg-white border border-gray-200 shadow-sm",
-    };
+      // Add extra pages if content overflows
+      let remainingHeight = imgHeight - (pdfHeight / ratio);
+      let pageOffset = pdfHeight / ratio;
 
-    return (
-      <div className={`p-6 rounded-lg ${templateStyles[selectedTemplate]}`}>
-        <div className="text-center mb-6">
-          <h3 className="text-xl font-bold text-black mb-2">John Doe</h3>
-          <p className="text-black">Software Engineer | john@example.com</p>
-        </div>
+      while (remainingHeight > 0) {
+        pdf.addPage();
+        pdf.addImage(
+          imgData,
+          "PNG",
+          0,
+          -(pageOffset * ratio),
+          finalWidth,
+          finalHeight
+        );
+        remainingHeight -= pdfHeight / ratio;
+        pageOffset += pdfHeight / ratio;
+      }
 
-        {resume?.summary && (
-          <SectionPreview title="Summary" template={selectedTemplate}>
-            <p className="text-black">{resume.summary}</p>
-          </SectionPreview>
-        )}
-
-        {resume?.skills && resume.skills.length > 0 && (
-          <SectionPreview title="Skills" template={selectedTemplate}>
-            <div className="flex flex-wrap gap-2">
-              {resume.skills.slice(0, 4).map((skill, i) => (
-                <span
-                  key={i}
-                  className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
-                >
-                  {skill}
-                </span>
-              ))}
-            </div>
-          </SectionPreview>
-        )}
-      </div>
-    );
+      pdf.save(`resume_${selectedTemplate.id}.pdf`);
+      toast.success("PDF downloaded successfully!");
+    } catch (err) {
+      console.error("PDF generation error:", err);
+      toast.error("Failed to generate PDF");
+    } finally {
+      setDownloading(false);
+    }
   };
 
   if (loading) {
     return (
-      <div className="w-full px-2 sm:px-4 lg:px-8 py-8">
-        <Card className="bg-white border-gray-200 shadow-lg w-full max-w-6xl mx-auto">
-          <CardContent className="p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-black">Loading resume preview...</p>
-          </CardContent>
-        </Card>
+      <div className="p-8 text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
+        <p className="text-gray-600">Loading your resume...</p>
+      </div>
+    );
+  }
+
+  if (!resume) {
+    return (
+      <div className="p-12 text-center">
+        <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <LayoutTemplate className="h-10 w-10 text-blue-400" />
+        </div>
+        <h3 className="text-xl font-semibold text-gray-800 mb-2">No Resume Found</h3>
+        <p className="text-gray-500">Fill out the Resume Form first to generate your resume, then come here to edit and customize it.</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full px-2 sm:px-4 lg:px-8 py-8">
-      <Card className="bg-white border-gray-200 shadow-lg w-full max-w-6xl mx-auto">
-        <CardContent className="p-6 sm:p-8 space-y-6">
-          {/* Header with Actions */}
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-black mb-2">
-                Resume Preview & Editor
-              </h2>
-              <p className="text-black">
-                Edit and customize your resume in real-time
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {resume && (
-                <>
-                  {!editing ? (
-                    <Button
-                      onClick={handleEdit}
-                      variant="outline"
-                      className="border-blue-300 text-blue-700"
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Resume
-                    </Button>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleSave}
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        <Save className="h-4 w-4 mr-2" />
-                        Save Changes
-                      </Button>
-                      <Button
-                        onClick={handleCancel}
-                        variant="outline"
-                        className="border-gray-300 text-black"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  )}
-                  <Button
-                    onClick={downloadPDF}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download PDF
-                  </Button>
-                </>
-              )}
-            </div>
+    <div className="flex flex-col h-full">
+      {/* ===== TOP TOOLBAR ===== */}
+      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 text-sm text-gray-500">
+            <MousePointer className="h-3.5 w-3.5" />
+            <span>Click any text on the resume to edit</span>
           </div>
-
-          {/* Template Selector */}
-          <div className="space-y-4">
-            <Label className="text-black font-semibold flex items-center gap-2">
-              <LayoutTemplate className="h-4 w-4" />
-              Choose Template
-            </Label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {templates.map((template) => (
-                <button
-                  key={template.id}
-                  onClick={() => setSelectedTemplate(template.id)}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    selectedTemplate === template.id
-                      ? "border-blue-500 ring-2 ring-blue-200"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <div
-                    className={`h-8 rounded-md ${template.color} mb-2`}
-                  ></div>
-                  <p className="text-sm font-medium text-black">
-                    {template.name}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {!resume ? (
-            <div className="text-center py-12">
-              <p className="text-black text-lg mb-4">No resume found.</p>
-              <p className="text-black">
-                Fill out the form to generate your resume.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-              {/* Template Preview */}
-              <div className="xl:col-span-2">
-                <div className="space-y-6">
-                  {editing ? (
-                    /* Editable View */
-                    <div className="space-y-6">
-                      <EditableSection
-                        title="Professional Summary"
-                        content={editedResume.summary}
-                        onEdit={(value) => handleSectionEdit("summary", value)}
-                        isEditing={activeSection === "summary"}
-                        onToggle={() =>
-                          setActiveSection(
-                            activeSection === "summary" ? null : "summary"
-                          )
-                        }
-                        type="textarea"
-                      />
-
-                      <EditableSection
-                        title="Skills"
-                        items={editedResume.skills}
-                        onAdd={() => addItem("skills")}
-                        onRemove={(index) => removeItem("skills", index)}
-                        onUpdate={(index, value) =>
-                          updateItem("skills", index, value)
-                        }
-                        isEditing={activeSection === "skills"}
-                        onToggle={() =>
-                          setActiveSection(
-                            activeSection === "skills" ? null : "skills"
-                          )
-                        }
-                        placeholder="Add a skill"
-                      />
-
-                      <EditableSection
-                        title="Experience"
-                        items={editedResume.experience}
-                        onAdd={() => addItem("experience")}
-                        onRemove={(index) => removeItem("experience", index)}
-                        onUpdate={(index, value) =>
-                          updateItem("experience", index, value)
-                        }
-                        isEditing={activeSection === "experience"}
-                        onToggle={() =>
-                          setActiveSection(
-                            activeSection === "experience" ? null : "experience"
-                          )
-                        }
-                        placeholder="Add experience"
-                      />
-
-                      <EditableSection
-                        title="Education"
-                        items={editedResume.education}
-                        onAdd={() => addItem("education")}
-                        onRemove={(index) => removeItem("education", index)}
-                        onUpdate={(index, value) =>
-                          updateItem("education", index, value)
-                        }
-                        isEditing={activeSection === "education"}
-                        onToggle={() =>
-                          setActiveSection(
-                            activeSection === "education" ? null : "education"
-                          )
-                        }
-                        placeholder="Add education"
-                      />
-
-                      <EditableSection
-                        title="Projects"
-                        items={editedResume.projects}
-                        onAdd={() => addItem("projects")}
-                        onRemove={(index) => removeItem("projects", index)}
-                        onUpdate={(index, value) =>
-                          updateItem("projects", index, value)
-                        }
-                        isEditing={activeSection === "projects"}
-                        onToggle={() =>
-                          setActiveSection(
-                            activeSection === "projects" ? null : "projects"
-                          )
-                        }
-                        placeholder="Add project"
-                      />
-                    </div>
-                  ) : (
-                    /* Preview View */
-                    <div className="space-y-6 text-black">
-                      {resume.summary && (
-                        <Section title="Professional Summary">
-                          <p>{resume.summary}</p>
-                        </Section>
-                      )}
-
-                      {resume.skills && resume.skills.length > 0 && (
-                        <Section title="Skills">
-                          <div className="flex flex-wrap gap-2">
-                            {resume.skills.map((skill, i) => (
-                              <span
-                                key={i}
-                                className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
-                              >
-                                {skill}
-                              </span>
-                            ))}
-                          </div>
-                        </Section>
-                      )}
-
-                      {resume.experience && resume.experience.length > 0 && (
-                        <Section title="Experience">
-                          <ul className="space-y-3">
-                            {resume.experience.map((exp, i) => (
-                              <li
-                                key={i}
-                                className="border-l-4 border-blue-500 pl-4 py-1"
-                              >
-                                {exp}
-                              </li>
-                            ))}
-                          </ul>
-                        </Section>
-                      )}
-
-                      {resume.education && resume.education.length > 0 && (
-                        <Section title="Education">
-                          <ul className="space-y-2">
-                            {resume.education.map((edu, i) => (
-                              <li key={i}>• {edu}</li>
-                            ))}
-                          </ul>
-                        </Section>
-                      )}
-
-                      {resume.projects && resume.projects.length > 0 && (
-                        <Section title="Projects">
-                          <ul className="space-y-2">
-                            {resume.projects.map((proj, i) => (
-                              <li key={i}>• {proj}</li>
-                            ))}
-                          </ul>
-                        </Section>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Template Preview Sidebar */}
-              <div className="xl:col-span-1">
-                <div className="sticky top-4">
-                  <h3 className="text-lg font-semibold text-black mb-4 flex items-center gap-2">
-                    <Eye className="h-4 w-4" />
-                    Template Preview
-                  </h3>
-                  {renderTemplatePreview()}
-
-                  <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <h4 className="font-semibold text-blue-900 mb-2">Tips</h4>
-                    <ul className="text-blue-800 text-sm space-y-1">
-                      <li>• Keep each section concise</li>
-                      <li>• Use action verbs in experience</li>
-                      <li>• Tailor content to job applications</li>
-                      <li>• Update skills regularly</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {editingField && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-medium animate-pulse">
+              Editing: {editingField}
+            </span>
           )}
-        </CardContent>
-      </Card>
+          {hasChanges && (
+            <span className="text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-medium">
+              Unsaved changes
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Zoom */}
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1">
+            <button
+              onClick={() => setZoom((z) => Math.max(0.4, z - 0.1))}
+              className="p-1 hover:bg-gray-200 rounded"
+            >
+              <ZoomOut className="h-3.5 w-3.5 text-gray-600" />
+            </button>
+            <span className="text-xs font-medium text-gray-600 w-10 text-center">
+              {Math.round(zoom * 100)}%
+            </span>
+            <button
+              onClick={() => setZoom((z) => Math.min(1.2, z + 0.1))}
+              className="p-1 hover:bg-gray-200 rounded"
+            >
+              <ZoomIn className="h-3.5 w-3.5 text-gray-600" />
+            </button>
+          </div>
+
+          {/* Save */}
+          <Button
+            onClick={handleSave}
+            disabled={saving || !hasChanges}
+            size="sm"
+            className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-40"
+          >
+            <Save className="h-3.5 w-3.5 mr-1.5" />
+            {saving ? "Saving..." : "Save"}
+          </Button>
+
+          {/* Download */}
+          <Button
+            onClick={handleDownloadPDF}
+            disabled={downloading}
+            size="sm"
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <Download className="h-3.5 w-3.5 mr-1.5" />
+            {downloading ? "Generating..." : "Download PDF"}
+          </Button>
+        </div>
+      </div>
+
+      {/* ===== MAIN AREA ===== */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Template Sidebar */}
+        <div className="w-56 bg-gray-50 border-r border-gray-200 p-4 overflow-y-auto flex-shrink-0">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <Palette className="h-4 w-4" />
+            Templates
+          </h3>
+          <div className="space-y-2">
+            {TEMPLATES.map((tmpl) => (
+              <button
+                key={tmpl.id}
+                onClick={() => setSelectedTemplate(tmpl)}
+                className={`w-full text-left p-3 rounded-xl border-2 transition-all duration-200 ${
+                  selectedTemplate.id === tmpl.id
+                    ? "border-blue-500 bg-white shadow-md ring-2 ring-blue-100"
+                    : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
+                }`}
+              >
+                <div
+                  className={`h-2.5 rounded-full bg-gradient-to-r ${tmpl.color} mb-2`}
+                />
+                <p className="text-xs font-semibold text-gray-800">{tmpl.name}</p>
+              </button>
+            ))}
+          </div>
+
+          {/* Tips */}
+          <div className="mt-6 p-3 bg-blue-50 rounded-xl border border-blue-100">
+            <h4 className="text-xs font-semibold text-blue-800 mb-2 flex items-center gap-1">
+              <Sparkles className="h-3 w-3" /> Tips
+            </h4>
+            <ul className="text-xs text-blue-700 space-y-1">
+              <li>• Click text to edit inline</li>
+              <li>• Switch templates instantly</li>
+              <li>• Save changes to your profile</li>
+              <li>• PDF matches what you see</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Canvas Area */}
+        <div className="flex-1 bg-gray-200 overflow-auto p-8 flex justify-center">
+          <div
+            style={{
+              transform: `scale(${zoom})`,
+              transformOrigin: "top center",
+              transition: "transform 0.2s ease",
+            }}
+          >
+            <ResumeCanvas
+              resume={resume}
+              template={selectedTemplate}
+              editingField={editingField}
+              onFieldClick={handleFieldClick}
+              onFieldChange={handleFieldChange}
+              canvasRef={canvasRef}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
-
-const Section = ({ title, children }) => (
-  <div className="border-b border-gray-200 pb-6 last:border-b-0">
-    <h3 className="text-xl font-semibold text-black mb-3">{title}</h3>
-    {children}
-  </div>
-);
-
-const SectionPreview = ({ title, children, template }) => (
-  <div className="mb-4">
-    <h4 className="font-semibold text-black mb-2 text-sm uppercase tracking-wide">
-      {title}
-    </h4>
-    {children}
-  </div>
-);
-
-const EditableSection = ({
-  title,
-  content,
-  items,
-  onEdit,
-  onAdd,
-  onRemove,
-  onUpdate,
-  isEditing,
-  onToggle,
-  type = "list",
-  placeholder,
-}) => (
-  <div className="border border-gray-200 rounded-lg p-4 bg-white">
-    <div className="flex justify-between items-center mb-3">
-      <h3 className="text-lg font-semibold text-black">{title}</h3>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onToggle}
-        className="border-gray-300 text-black"
-      >
-        {isEditing ? "Preview" : "Edit"}
-      </Button>
-    </div>
-
-    {isEditing ? (
-      <div className="space-y-3">
-        {type === "textarea" ? (
-          <Textarea
-            value={content || ""}
-            onChange={(e) => onEdit(e.target.value)}
-            placeholder={placeholder}
-            className="min-h-[100px] border-gray-300 text-black"
-          />
-        ) : (
-          <div className="space-y-2">
-            {items?.map((item, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  value={item}
-                  onChange={(e) => onUpdate(index, e.target.value)}
-                  placeholder={placeholder}
-                  className="flex-1 border-gray-300 text-black"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onRemove(index)}
-                  className="border-red-300 text-red-600 hover:bg-red-50"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              onClick={onAdd}
-              variant="outline"
-              className="border-gray-300 text-black"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Item
-            </Button>
-          </div>
-        )}
-      </div>
-    ) : (
-      <div className="text-black">
-        {type === "textarea" ? (
-          <p>{content || "No content added"}</p>
-        ) : (
-          <ul className="space-y-1">
-            {items?.map((item, index) => (
-              <li key={index}>• {item}</li>
-            ))}
-          </ul>
-        )}
-      </div>
-    )}
-  </div>
-);
 
 export default ResumeBuilding;

@@ -11,13 +11,13 @@ interface UpdateUserData {
 }
 
 export async function updateUser(data: UpdateUserData) {
-    const user = await currentUser();
-   console.log("✅ Clerk currentUser:", user);
+  const user = await currentUser();
+  console.log("✅ Clerk currentUser:", user);
 
-   if (!user) {
-     console.error("❌ No authenticated Clerk user.");
-     throw new Error("User not authenticated");
-   }
+  if (!user) {
+    console.error("❌ No authenticated Clerk user.");
+    throw new Error("User not authenticated");
+  }
   const dbUser = await db.user.findUnique({
     where: { clerkUserId: user.id },
   });
@@ -89,7 +89,7 @@ export async function getUserOnboardingStatus(): Promise<{
   if (!userId) {
     console.warn("User not authenticated");
     console.log(userId);
-    return {isAuthenticated:false, isOnboarded: false };
+    return { isAuthenticated: false, isOnboarded: false };
   }
 
   const dbUser = await db.user.findUnique({
@@ -115,4 +115,89 @@ export async function getUserOnboardingStatus(): Promise<{
     dbUser.skills.length > 0;
 
   return { isAuthenticated: true, isOnboarded };
+}
+
+export async function updateUserProfileLinks(data: {
+  industry?: string;
+  experience?: number | string;
+  bio?: string;
+  linkedinUrl?: string;
+  githubUrl?: string;
+  portfolioUrl?: string;
+  externalResumeText?: string;
+}) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const experienceValue =
+    data.experience !== undefined &&
+    data.experience !== null &&
+    data.experience !== ""
+      ? Number(data.experience)
+      : null;
+
+  try {
+    const dbUser = await db.user.update({
+      where: { clerkUserId: userId },
+      data: {
+        industry: data.industry || null,
+        experience: experienceValue,
+        bio: data.bio || null,
+        linkedinUrl: data.linkedinUrl || null,
+        githubUrl: data.githubUrl || null,
+        portfolioUrl: data.portfolioUrl || null,
+        externalResumeText: data.externalResumeText || null,
+      },
+      select: {
+        industry: true,
+        experience: true,
+        bio: true,
+        linkedinUrl: true,
+        githubUrl: true,
+        portfolioUrl: true,
+      },
+    });
+    return dbUser;
+  } catch (error: any) {
+    console.error("Error updating profile links:", error);
+    throw new Error(error.message || "Failed to update profile links");
+  }
+}
+
+export async function deleteUserAccount() {
+  const { userId } = await auth();
+  if (!userId) {
+    throw new Error("Unauthorized");
+  }
+
+  const dbUser = await db.user.findUnique({
+    where: { clerkUserId: userId },
+    select: { id: true },
+  });
+
+  if (!dbUser) {
+    throw new Error("User not found");
+  }
+
+  try {
+    await db.$transaction([
+      db.subscription.deleteMany({ where: { userId: dbUser.id } }),
+      db.resume.deleteMany({ where: { userId: dbUser.id } }),
+      db.coverLetter.deleteMany({ where: { userId: dbUser.id } }),
+      db.assessment.deleteMany({ where: { userId: dbUser.id } }),
+      db.careerEvaluation.deleteMany({ where: { userId: dbUser.id } }),
+      db.careerInsight.deleteMany({ where: { userId: dbUser.id } }),
+      db.campaign.deleteMany({ where: { userId: dbUser.id } }),
+      db.emailLog.deleteMany({ where: { userId: dbUser.id } }),
+      db.user.delete({ where: { id: dbUser.id } }),
+    ]);
+
+    return {
+      success: true,
+      message: "Your account data has been removed from our system.",
+    };
+  } catch (error: any) {
+    console.error("Error deleting user account:", error);
+    throw new Error(error.message || "Failed to delete account");
+  }
 }
