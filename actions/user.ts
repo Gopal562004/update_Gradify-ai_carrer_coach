@@ -8,6 +8,10 @@ interface UpdateUserData {
   experience: number;
   bio: string;
   skills: string[];
+  dsaGrade?: number | null;
+  oopGrade?: number | null;
+  dbmsGrade?: number | null;
+  osGrade?: number | null;
 }
 
 export async function updateUser(data: UpdateUserData) {
@@ -56,6 +60,10 @@ export async function updateUser(data: UpdateUserData) {
           experience: data.experience,
           bio: data.bio,
           skills: Array.isArray(data.skills) ? data.skills : [],
+          dsaGrade: data.dsaGrade ?? undefined,
+          oopGrade: data.oopGrade ?? undefined,
+          dbmsGrade: data.dbmsGrade ?? undefined,
+          osGrade: data.osGrade ?? undefined,
         },
       });
       return { updatedUser, industryInsight };
@@ -187,6 +195,8 @@ export async function deleteUserAccount() {
       db.assessment.deleteMany({ where: { userId: dbUser.id } }),
       db.careerEvaluation.deleteMany({ where: { userId: dbUser.id } }),
       db.careerInsight.deleteMany({ where: { userId: dbUser.id } }),
+      db.roadmapProgress.deleteMany({ where: { userId: dbUser.id } }),
+      db.notification.deleteMany({ where: { userId: dbUser.id } }),
       db.campaign.deleteMany({ where: { userId: dbUser.id } }),
       db.emailLog.deleteMany({ where: { userId: dbUser.id } }),
       db.user.delete({ where: { id: dbUser.id } }),

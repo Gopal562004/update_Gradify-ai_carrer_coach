@@ -1695,7 +1695,7 @@
 
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   generateQuiz,
@@ -1703,7 +1703,12 @@ import {
   evaluateAnswers,
   getCareerEvaluation,
   updateIndustryInsight,
+  generateCustomRoadmap,
 } from "@/actions/gemini_res";
+import {
+  getRoadmapProgress,
+  togglePhaseCompletion,
+} from "@/actions/progress";
 import {
   ResponsiveContainer,
   RadarChart,
@@ -1866,6 +1871,10 @@ export default function CareerPage() {
   const [selectedField, setSelectedField] = useState(null);
   const [previousResult, setPreviousResult] = useState(null);
   const [isAnswering, setIsAnswering] = useState(false);
+  const [progressMap, setProgressMap] = useState({}); // { phaseIndex: boolean }
+  const [progressLoading, setProgressLoading] = useState(false);
+  const [customFieldInput, setCustomFieldInput] = useState("");
+  const [customLoading, setCustomLoading] = useState(false);
 
   const [currentPart, setCurrentPart] = useState("partA");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -1881,6 +1890,27 @@ export default function CareerPage() {
       }
     })();
   }, []);
+
+  // Load progress when selectedField changes
+  const loadProgress = useCallback(async (field) => {
+    if (!field) return;
+    try {
+      const progress = await getRoadmapProgress(field);
+      const map = {};
+      for (const p of progress) {
+        map[p.phaseIndex] = p.completed;
+      }
+      setProgressMap(map);
+    } catch (err) {
+      console.error("Failed to load progress:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedField) {
+      loadProgress(selectedField);
+    }
+  }, [selectedField, loadProgress]);;
 
   const totalQ = quiz
     ? (quiz.partA?.length || 0) + (quiz.partB?.length || 0)
@@ -1917,6 +1947,23 @@ export default function CareerPage() {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGenerateCustomRoadmap = async () => {
+    if (!customFieldInput.trim()) return;
+    setCustomLoading(true);
+    try {
+      const { updatedEval, generatedField } = await generateCustomRoadmap(customFieldInput.trim());
+      if (result) setResult(updatedEval);
+      setPreviousResult(updatedEval);
+      setSelectedField(generatedField);
+      setCustomFieldInput("");
+      setStep("result");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCustomLoading(false);
     }
   };
 
@@ -2311,6 +2358,29 @@ export default function CareerPage() {
                     <ChevronRight className="h-4 w-4" />
                     Select a field to explore detailed roadmap
                   </div>
+
+                  {/* Custom Roadmap Input */}
+                  <div className="mt-6 border-t border-gray-100 pt-4">
+                    <div className="text-sm font-medium text-gray-700 mb-3">
+                      Interested in something else?
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="e.g. AI Prompt Engineer"
+                        value={customFieldInput}
+                        onChange={(e) => setCustomFieldInput(e.target.value)}
+                        className="flex-1 rounded-xl border border-gray-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                      />
+                      <button
+                        onClick={handleGenerateCustomRoadmap}
+                        disabled={customLoading || !customFieldInput.trim()}
+                        className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
+                      >
+                        {customLoading ? "Creating..." : "Create"}
+                      </button>
+                    </div>
+                  </div>
                 </Card>
               </div>
 
@@ -2357,32 +2427,140 @@ export default function CareerPage() {
                   )}
                 </div>
 
-                {/* Textual Roadmap */}
+                {/* Textual Roadmap with Progress Tracking */}
                 {nodes.length > 0 && (
                   <div className="mt-8 space-y-6">
-                    <SectionTitle>Roadmap Breakdown</SectionTitle>
-                    <div className="space-y-4">
-                      {nodes.map((n, index) => (
-                        <div
-                          key={n.id}
-                          className="flex gap-4 p-4 rounded-xl border border-gray-200 bg-white"
-                        >
-                          <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span className="text-sm font-semibold text-blue-600">
-                              {index + 1}
-                            </span>
+                    <div className="flex items-center justify-between">
+                      <SectionTitle>Roadmap Breakdown</SectionTitle>
+                      {Object.keys(progressMap).length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <div className="w-32 bg-gray-100 rounded-full h-2.5">
+                            <div
+                              className="h-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
+                              style={{
+                                width: `${Math.round(
+                                  (Object.values(progressMap).filter(Boolean).length /
+                                    nodes.length) *
+                                    100
+                                )}%`,
+                              }}
+                            />
                           </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-900 mb-1">
-                              {n.data.labelText}
-                            </h4>
-                            <p className="text-gray-600 text-sm">
-                              {n.data.detailsText}
-                            </p>
-                          </div>
+                          <span className="text-xs font-medium text-gray-500">
+                            {Object.values(progressMap).filter(Boolean).length}/{nodes.length}
+                          </span>
                         </div>
-                      ))}
+                      )}
                     </div>
+                    <div className="space-y-4">
+                      {nodes.map((n, index) => {
+                        const isCompleted = progressMap[index] === true;
+                        return (
+                          <div
+                            key={n.id}
+                            className={`flex gap-4 p-4 rounded-xl border transition-all duration-200 ${
+                              isCompleted
+                                ? "border-emerald-200 bg-emerald-50/50"
+                                : "border-gray-200 bg-white"
+                            }`}
+                          >
+                            <button
+                              onClick={async () => {
+                                setProgressLoading(true);
+                                try {
+                                  await togglePhaseCompletion(
+                                    selectedField,
+                                    index,
+                                    n.data.labelText || `Phase ${index + 1}`
+                                  );
+                                  setProgressMap((prev) => ({
+                                    ...prev,
+                                    [index]: !prev[index],
+                                  }));
+                                } catch (err) {
+                                  console.error("Failed to toggle phase:", err);
+                                } finally {
+                                  setProgressLoading(false);
+                                }
+                              }}
+                              disabled={progressLoading}
+                              className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
+                                isCompleted
+                                  ? "bg-emerald-500 text-white shadow-sm"
+                                  : "bg-gray-100 text-gray-400 hover:bg-blue-100 hover:text-blue-600"
+                              }`}
+                            >
+                              {isCompleted ? (
+                                <CheckCircle2 className="w-5 h-5" />
+                              ) : (
+                                <span className="text-sm font-semibold">
+                                  {index + 1}
+                                </span>
+                              )}
+                            </button>
+                            <div className="flex-1">
+                              <h4
+                                className={`font-semibold mb-1 ${
+                                  isCompleted
+                                    ? "text-emerald-800 line-through opacity-70"
+                                    : "text-gray-900"
+                                }`}
+                              >
+                                {n.data.labelText}
+                              </h4>
+                              <p
+                                className={`text-sm ${
+                                  isCompleted ? "text-emerald-600 opacity-70" : "text-gray-600"
+                                }`}
+                              >
+                                {n.data.detailsText}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* SACRA Scores Section */}
+                    {(result?.sacraScores || previousResult?.sacraScores) && (
+                      <div className="mt-6">
+                        <SectionTitle>SACRA Algorithm Scores</SectionTitle>
+                        <p className="text-xs text-gray-500 mt-1 mb-4">
+                          Powered by the Simplified Adaptive Career Recommendation Algorithm
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {(result?.sacraScores || previousResult?.sacraScores || []).map(
+                            (s) => (
+                              <div
+                                key={s.domain}
+                                className="p-3 rounded-xl border border-gray-200 bg-white"
+                              >
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {s.domain}
+                                  </span>
+                                  <span className="text-sm font-bold text-blue-600">
+                                    {s.score?.toFixed(1)}
+                                  </span>
+                                </div>
+                                <div className="w-full bg-gray-100 rounded-full h-1.5">
+                                  <div
+                                    className="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
+                                    style={{ width: `${Math.min(100, s.score)}%` }}
+                                  />
+                                </div>
+                                <div className="flex gap-2 mt-2 text-[10px] text-gray-400">
+                                  <span>A:{s.factors?.academic?.toFixed(0)}</span>
+                                  <span>I:{s.factors?.interest?.toFixed(0)}</span>
+                                  <span>S:{s.factors?.skill?.toFixed(0)}</span>
+                                  <span>G:{s.factors?.growth?.toFixed(0)}</span>
+                                </div>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex justify-center pt-4">
                       <button

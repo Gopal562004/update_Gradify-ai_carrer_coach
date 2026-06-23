@@ -287,6 +287,16 @@ model User {
   bio             String?
   experience      Int?
   skills          String[]
+
+  // --- ACADEMIC PERFORMANCE (SACRA Algorithm) ---
+  dsaGrade        Float?   // Data Structures & Algorithms (0-100)
+  oopGrade        Float?   // Object-Oriented Programming (0-100)
+  dbmsGrade       Float?   // Database Management Systems (0-100)
+  osGrade         Float?   // Operating Systems (0-100)
+
+  // --- SACRA ALGORITHM CACHE ---
+  sacraScores     Json?    // Cached SACRA domain scores
+  sacraVersion    Int      @default(0) // Tracks recalculation count
   
   // --- PROFILE LINKS & EXTERNAL DOCS ---
   linkedinUrl        String?
@@ -319,6 +329,10 @@ model User {
   // RELATIONS (Only essential)
   campaigns Campaign[]
   emailLogs EmailLog[]
+
+  // --- SACRA: PROGRESS & NOTIFICATIONS ---
+  roadmapProgress  RoadmapProgress[]
+  notifications    Notification[]
 
   @@index([clerkUserId])
   @@index([email])
@@ -610,4 +624,38 @@ model CareerInsight {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+// ========== SACRA: ROADMAP PROGRESS TRACKING ==========
+model RoadmapProgress {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  field       String    // Career field, e.g., "Web Development"
+  phaseIndex  Int       // 0-based index of the roadmap phase
+  phaseTitle  String    // e.g., "Phase 1: Fundamentals"
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, field, phaseIndex])
+  @@index([userId])
+  @@index([field])
+}
+
+// ========== NOTIFICATION SYSTEM ==========
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   // "milestone_complete", "improvement_tip", "roadmap_update", "score_change"
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  link      String?  // Optional deep-link, e.g., "/gemini_res"
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([createdAt])
 }

@@ -236,7 +236,8 @@ import {
   ArrowRight,
   CheckCircle2,
   Lightbulb,
-  Sparkles
+  Sparkles,
+  GraduationCap
 } from "lucide-react";
 
 interface OnBoardingFormProps {
@@ -260,6 +261,10 @@ const schema = z.object({
       message: "Separate multiple skills with commas.",
     }),
   bio: z.string().min(1, "Professional bio is required.").max(500, "Bio must be less than 500 characters."),
+  dsaGrade: z.union([z.string(), z.number()]).optional(),
+  oopGrade: z.union([z.string(), z.number()]).optional(),
+  dbmsGrade: z.union([z.string(), z.number()]).optional(),
+  osGrade: z.union([z.string(), z.number()]).optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -290,6 +295,10 @@ const OnBoardingForm: React.FC<OnBoardingFormProps> = ({ industries }) => {
       experience: data.experience,
       bio: data.bio,
       skills: data.skills.split(",").map((s) => s.trim()),
+      dsaGrade: data.dsaGrade === "" || data.dsaGrade == null ? null : Number(data.dsaGrade),
+      oopGrade: data.oopGrade === "" || data.oopGrade == null ? null : Number(data.oopGrade),
+      dbmsGrade: data.dbmsGrade === "" || data.dbmsGrade == null ? null : Number(data.dbmsGrade),
+      osGrade: data.osGrade === "" || data.osGrade == null ? null : Number(data.osGrade),
     };
 
     try {
@@ -487,6 +496,75 @@ const OnBoardingForm: React.FC<OnBoardingFormProps> = ({ industries }) => {
               <span className="text-xs text-gray-400">
                 {watch('bio')?.length || 0}/500
               </span>
+            </div>
+          </div>
+
+          {/* Academic Performance (Optional - for SACRA Algorithm) */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <GraduationCap className="w-5 h-5 text-indigo-500" />
+              <div>
+                <label className="block text-sm font-semibold text-gray-900">
+                  Academic Performance
+                </label>
+                <p className="text-xs text-gray-500">
+                  Optional — helps our AI recommend more accurate career paths (SACRA Algorithm)
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  DSA (Data Structures & Algorithms)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  {...register("dsaGrade")}
+                  className={inputClass(false)}
+                  placeholder="0-100"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  OOP (Object-Oriented Programming)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  {...register("oopGrade")}
+                  className={inputClass(false)}
+                  placeholder="0-100"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  DBMS (Database Management)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  {...register("dbmsGrade")}
+                  className={inputClass(false)}
+                  placeholder="0-100"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  OS (Operating Systems)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  {...register("osGrade")}
+                  className={inputClass(false)}
+                  placeholder="0-100"
+                />
+              </div>
             </div>
           </div>
 

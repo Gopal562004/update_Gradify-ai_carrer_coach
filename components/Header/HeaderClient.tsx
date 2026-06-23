@@ -499,6 +499,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import NotificationCenter from "@/components/NotificationCenter";
 
 const HeaderClient = () => {
   const careerTools = [
@@ -688,6 +689,9 @@ const HeaderClient = () => {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Notification Center */}
+        <NotificationCenter />
 
         {/* User Profile Settings Button */}
         <Link href="/profile">

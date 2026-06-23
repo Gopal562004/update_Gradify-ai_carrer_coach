@@ -244,7 +244,7 @@ import UsageCard from "@/components/UsageCard";
 import Link from "next/link";
 import { FileText, ClipboardList } from "lucide-react";
 
-export default function IndustryInsightsDashboard({ insights, userStats, careerInsight }) {
+export default function IndustryInsightsDashboard({ insights, userStats, careerInsight, roadmapProgress = [] }) {
   const getDemandLevelConfig = (level) => {
     const config = {
       high: {
@@ -445,6 +445,37 @@ export default function IndustryInsightsDashboard({ insights, userStats, careerI
           </Card>
         </div>
 
+        {/* --- ROADMAP PROGRESS WIDGET --- */}
+        {roadmapProgress && roadmapProgress.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {roadmapProgress.map((rp) => (
+              <Card key={rp.field} className="col-span-1 shadow-sm border border-emerald-100 bg-white hover:shadow-md transition-all">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-sm font-semibold text-gray-900 truncate pr-2">
+                      {rp.field}
+                    </CardTitle>
+                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                      {rp.percentage}%
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Progress value={rp.percentage} className="h-2 mb-3 bg-gray-100 [&>div]:bg-emerald-500" />
+                  <p className="text-xs text-gray-500 mb-4">
+                    {rp.completed} of {rp.total} milestones completed
+                  </p>
+                  <Link href="/gemini_res">
+                    <button className="w-full text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-1">
+                      Continue Roadmap <ArrowUpRight className="w-3 h-3" />
+                    </button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
         {/* Key Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Market Outlook Card */}
@@ -600,16 +631,16 @@ export default function IndustryInsightsDashboard({ insights, userStats, careerI
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={insights.salaryRanges}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                  barSize={28}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+                  barSize={24}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis
                     dataKey="role"
                     angle={-45}
                     textAnchor="end"
-                    height={80}
-                    tick={{ fontSize: 12 }}
+                    height={120}
+                    tick={{ fontSize: 11 }}
                     interval={0}
                   />
                   <YAxis

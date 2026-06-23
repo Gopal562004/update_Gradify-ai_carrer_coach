@@ -113,7 +113,10 @@ export async function checkFeatureAccess(feature: string) {
   // -1 means unlimited
   const isUnlimited = limit === -1;
   const remaining = isUnlimited ? -1 : Math.max(0, limit - used);
-  const allowed = isUnlimited || used < limit;
+  
+  // BYPASS LIMITS FOR LOCAL DEVELOPMENT TESTING
+  const isDev = process.env.NODE_ENV !== "production";
+  const allowed = isUnlimited || used < limit || isDev;
 
   return {
     allowed,
@@ -140,8 +143,9 @@ export async function consumeToken(feature: string) {
   const limit = (subscription as any)[limitField] as number;
   const used = (subscription as any)[usedField] as number;
 
-  // Check if allowed
-  if (limit !== -1 && used >= limit) {
+  // Check if allowed (bypass in local development)
+  const isDev = process.env.NODE_ENV !== "production";
+  if (!isDev && limit !== -1 && used >= limit) {
     throw new Error(
       `You've reached your ${subscription.plan} plan limit for this feature. Please upgrade to continue.`
     );

@@ -184,11 +184,11 @@ export const generateAIInsights = async (
   industry: string
 ): Promise<AIInsightResult> => {
   const prompt = `
-Analyze the current state of the ${industry} industry and provide insights in ONLY the following JSON format WITHOUT any additional notes or explanations:
+You are an expert Indian IT Market Researcher. Analyze the current state of the ${industry} industry in the Indian Tech Market and provide highly realistic, up-to-date insights in ONLY the following JSON format WITHOUT any additional notes or explanations:
 
 {
   "salaryRanges": [
-    { "role": "string", "min": "number in LPA", "max": "number in LPA", "median": "number in LPA", "location": "string" }
+    { "role": "string (e.g. Entry-Level, Mid-Level, Senior, Lead)", "min": "number in LPA", "max": "number in LPA", "median": "number in LPA", "location": "India" }
   ],
   "growthRate": "number in percentage",
   "demandLevel": "High" | "Medium" | "Low",
@@ -198,11 +198,12 @@ Analyze the current state of the ${industry} industry and provide insights in ON
   "recommendedSkills": ["skill1", "skill2", "skill3", "skill4", "skill5"]
 }
 
-IMPORTANT:
-1. Return ONLY JSON. No extra text, notes, or markdown.
-2. Salary should be in **whole numbers in LPA**, e.g., 40, 60, 25 (not 0.004 or 0.06).
-3. Growth rate should be in percentage, e.g., 10, 25.
-4. Example salary: { "role": "Software Engineer", "min": 30, "max": 50, "median": 40, "location": "India" }
+IMPORTANT STRICT RULES:
+1. Return ONLY valid JSON. No extra text, notes, or markdown blocks.
+2. Salaries MUST be realistic for the CURRENT Indian IT Market. 
+3. Salary should be in **whole numbers or simple decimals in LPA** (e.g., 3.5, 6, 12, 25).
+4. Entry-level roles usually start between 3 to 8 LPA. NEVER provide absurdly low salaries like 0.5 or 0.6 LPA unless it's a part-time internship.
+5. Growth rate should be a realistic percentage (e.g., 8.5, 12, 22).
 `;
 
   const result = await model.generateContent(prompt);

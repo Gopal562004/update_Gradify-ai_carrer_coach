@@ -87,13 +87,27 @@ export async function generateProfileRoadmap() {
       user.portfolioUrl,
     );
 
+    // ─── SACRA ALGORITHM ───
+    const { runSACRA, getSACRAScoresForPrompt } = await import("@/lib/sacra");
+    const sacraResult = await runSACRA(user.id, {
+      skills: user.skills || [],
+      experience: user.experience,
+      industry: user.industry,
+      dsaGrade: user.dsaGrade,
+      oopGrade: user.oopGrade,
+      dbmsGrade: user.dbmsGrade,
+      osGrade: user.osGrade,
+    });
+    const sacraPromptSection = getSACRAScoresForPrompt(sacraResult);
+
     const prompt = `
-You are a career counselor. Use the user's saved profile, resume, assessment history, and scraped web profile data to recommend the best IT career fields and create a detailed roadmap for each one.
+You are a career counselor. Use the user's saved profile, resume, assessment history, scraped web profile data, AND the SACRA algorithm scores to recommend the best IT career fields and create a detailed roadmap for each one.
 
 === USER PROFILE ===
 Industry: ${user.industry || "Not specified"}
 Experience: ${user.experience ? `${user.experience} years` : "Not specified"}
 Skills: ${user.skills?.join(", ") || "None listed"}
+Academic Grades: DSA=${user.dsaGrade ?? "N/A"}, OOP=${user.oopGrade ?? "N/A"}, DBMS=${user.dbmsGrade ?? "N/A"}, OS=${user.osGrade ?? "N/A"}
 
 === PLATFORM DATA ===
 Resume Info: ${resumeInfo}
@@ -111,9 +125,11 @@ ${scrapedData.linkedinData || "No LinkedIn data extracted"}
 Portfolio/Website Analysis:
 ${scrapedData.portfolioData || "No Portfolio data extracted"}
 
-1. Identify the top 3–5 IT fields that best match the user's profile and current skills.
+${sacraPromptSection}
+
+1. Identify the top 3–5 IT fields that best match the user's profile, current skills, AND SACRA algorithm scores. Prioritize fields with higher SACRA scores.
 2. Generate a roadmap for each field in phases: Fundamentals → Core → Projects → Internships/Hackathons → Job Prep.
-3. Keep the recommendations grounded in the user's actual resume, skills, assessment history, and scraped profile data.
+3. Keep the recommendations grounded in the user's actual resume, skills, assessment history, scraped profile data, AND SACRA scores.
 
 Return JSON format:
 {
@@ -122,7 +138,7 @@ Return JSON format:
     "field1": ["Phase 1: ...","Phase 2: ..."],
     "field2": ["Phase 1: ...","Phase 2: ..."]
   },
-  "summary": "short explanation for student"
+  "summary": "short explanation for student mentioning their SACRA algorithm strengths"
 }
 ONLY return JSON.
 `;
@@ -142,14 +158,43 @@ ONLY return JSON.
       .trim();
     const parsed = JSON.parse(raw);
 
+    // Save both AI result and SACRA scores
+    const fullResult = {
+      ...parsed,
+      sacraScores: sacraResult.scores.slice(0, 5).map((s) => ({
+        domain: s.domainName,
+        score: s.compositeScore,
+        confidence: s.confidence,
+        factors: s.factors,
+        skillGaps: s.skillGaps,
+      })),
+      sacraVersion: sacraResult.algorithmVersion,
+      dataCompleteness: sacraResult.dataCompleteness,
+    };
+
     await db.careerEvaluation.upsert({
       where: { userId: user.id },
-      update: { result: JSON.stringify(parsed, null, 2) },
-      create: { userId: user.id, result: JSON.stringify(parsed, null, 2) },
+      update: { result: JSON.stringify(fullResult, null, 2) },
+      create: { userId: user.id, result: JSON.stringify(fullResult, null, 2) },
     });
 
+    // Generate notification for roadmap update
+    try {
+      await db.notification.create({
+        data: {
+          userId: user.id,
+          type: "roadmap_update",
+          title: "Career Roadmap Updated",
+          message: `Your career roadmap has been regenerated using the SACRA algorithm (v${sacraResult.algorithmVersion}). Top recommendation: ${fullResult.topFields?.[0] || "N/A"}`,
+          link: "/gemini_res",
+        },
+      });
+    } catch (notifErr) {
+      console.warn("Failed to create notification:", notifErr);
+    }
+
     await consumeToken("careerEval");
-    return parsed;
+    return fullResult;
   } catch (err) {
     console.error("❌ Error in generateProfileRoadmap:", err);
     throw err;
@@ -206,8 +251,25 @@ ONLY return JSON.
       user.portfolioUrl,
     );
 
+    // ─── SACRA ALGORITHM (with quiz answers for interest pattern analysis) ───
+    const { runSACRA, getSACRAScoresForPrompt } = await import("@/lib/sacra");
+    const sacraResult = await runSACRA(
+      user.id,
+      {
+        skills: user.skills || [],
+        experience: user.experience,
+        industry: user.industry,
+        dsaGrade: user.dsaGrade,
+        oopGrade: user.oopGrade,
+        dbmsGrade: user.dbmsGrade,
+        osGrade: user.osGrade,
+      },
+      answers // Pass quiz answers for interest pattern scoring
+    );
+    const sacraPromptSection = getSACRAScoresForPrompt(sacraResult);
+
     const prompt = `
-You are a career counselor. Use the student's quiz answers plus their saved profile information, assessment results, and scraped web profile data to recommend the best IT career fields and generate roadmaps.
+You are a career counselor. Use the student's quiz answers plus their saved profile information, assessment results, scraped web profile data, AND SACRA algorithm scores to recommend the best IT career fields and generate roadmaps.
 
 Student Answers:
 ${JSON.stringify(answers)}
@@ -216,6 +278,7 @@ ${JSON.stringify(answers)}
 Industry: ${user.industry || "Not specified"}
 Experience: ${user.experience ? `${user.experience} years` : "Not specified"}
 Skills: ${user.skills?.join(", ") || "None listed"}
+Academic Grades: DSA=${user.dsaGrade ?? "N/A"}, OOP=${user.oopGrade ?? "N/A"}, DBMS=${user.dbmsGrade ?? "N/A"}, OS=${user.osGrade ?? "N/A"}
 
 === PLATFORM DATA ===
 Resume Info: ${resumeInfo}
@@ -233,8 +296,10 @@ ${scrapedData.linkedinData || "No LinkedIn data extracted"}
 Portfolio/Website Analysis:
 ${scrapedData.portfolioData || "No Portfolio data extracted"}
 
-1. Identify interest & aptitude patterns.
-2. Suggest Top 3–5 IT fields (e.g., Web Dev, Data Science, AI/ML, Cybersecurity, Cloud).
+${sacraPromptSection}
+
+1. Identify interest & aptitude patterns from quiz answers AND SACRA scores.
+2. Suggest Top 3–5 IT fields. Prioritize fields with higher SACRA scores.
 3. Generate a roadmap for each field in phases: Fundamentals → Core → Projects → Internships/Hackathons → Job Prep.
 
 Return JSON format:
@@ -244,7 +309,7 @@ Return JSON format:
     "field1": ["Phase 1: ...","Phase 2: ..."],
     "field2": ["Phase 1: ...","Phase 2: ..."]
   },
-  "summary": "short explanation for student"
+  "summary": "short explanation for student mentioning SACRA algorithm insights"
 }
 ONLY return JSON.
 `;
@@ -257,17 +322,45 @@ ONLY return JSON.
 
     const parsed = JSON.parse(raw);
 
-    // Store only evaluation result JSON
-    const evaluation = await db.careerEvaluation.upsert({
+    // Save AI result enriched with SACRA scores
+    const fullResult = {
+      ...parsed,
+      sacraScores: sacraResult.scores.slice(0, 5).map((s) => ({
+        domain: s.domainName,
+        score: s.compositeScore,
+        confidence: s.confidence,
+        factors: s.factors,
+        skillGaps: s.skillGaps,
+      })),
+      sacraVersion: sacraResult.algorithmVersion,
+      dataCompleteness: sacraResult.dataCompleteness,
+    };
+
+    await db.careerEvaluation.upsert({
       where: { userId: user.id },
-      update: { result: JSON.stringify(parsed, null, 2) },
-      create: { userId: user.id, result: JSON.stringify(parsed, null, 2) },
+      update: { result: JSON.stringify(fullResult, null, 2) },
+      create: { userId: user.id, result: JSON.stringify(fullResult, null, 2) },
     });
+
+    // Generate notification
+    try {
+      await db.notification.create({
+        data: {
+          userId: user.id,
+          type: "roadmap_update",
+          title: "Career Evaluation Complete",
+          message: `Quiz-based career evaluation completed with SACRA analysis. Top recommendation: ${fullResult.topFields?.[0] || "N/A"} (Score: ${sacraResult.scores[0]?.compositeScore?.toFixed(1) || "N/A"})`,
+          link: "/gemini_res",
+        },
+      });
+    } catch (notifErr) {
+      console.warn("Failed to create notification:", notifErr);
+    }
 
     // ✅ Consume token after successful evaluation
     await consumeToken("careerEval");
 
-    return parsed; // return parsed JSON so UI can display
+    return fullResult;
   } catch (err) {
     console.error("❌ Error in evaluateAnswers:", err);
     throw err;
@@ -297,7 +390,15 @@ export async function updateIndustryInsight(selectedField) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  // Update user.industry and link to IndustryInsight
+  const user = await db.user.findUnique({
+    where: { clerkUserId: userId },
+    include: { IndustryInsight: true }
+  });
+
+  if (!user) throw new Error("User not found");
+
+  // Update user's primary industry. We use connectOrCreate to satisfy the foreign key constraint.
+  // We set nextUpdate to an expired date so the dashboard generates real AI data.
   await db.user.update({
     where: { clerkUserId: userId },
     data: {
@@ -314,7 +415,7 @@ export async function updateIndustryInsight(selectedField) {
             keyTrends: [],
             recommendedSkills: [],
             lastUpdated: new Date(),
-            nextUpdate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+            nextUpdate: new Date(0), // Expire immediately
           },
         },
       },
@@ -322,4 +423,68 @@ export async function updateIndustryInsight(selectedField) {
   });
 
   return { success: true };
+}
+
+/**
+ * Generate a custom roadmap for a specific field requested by the user.
+ */
+export async function generateCustomRoadmap(customField) {
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) throw new Error("Unauthorized");
+
+  const user = await db.user.findUnique({
+    where: { clerkUserId },
+    include: { careerEvaluation: true },
+  });
+  if (!user) throw new Error("User not found");
+
+  if (!user.careerEvaluation || !user.careerEvaluation.result) {
+    throw new Error("No existing career evaluation found to append to.");
+  }
+
+  const existingEval = JSON.parse(user.careerEvaluation.result);
+
+  const prompt = `
+The user specifically requested a custom IT career roadmap for the field: "${customField}".
+If the field name is misspelled, poorly formatted, or informal, please correct it to the proper, professional IT job title (e.g. "cyber crim" -> "Cybersecurity", "machin lurning" -> "Machine Learning").
+Generate a structured roadmap for this field in 5 phases: Fundamentals → Core → Projects → Internships/Hackathons → Job Prep.
+Tailor the advice based on their existing profile if possible: ${user.skills?.join(", ")} and ${user.experience} years experience.
+
+Return ONLY JSON format:
+{
+  "correctedField": "Proper Professional Title",
+  "roadmap": ["Phase 1: ...", "Phase 2: ...", "Phase 3: ...", "Phase 4: ...", "Phase 5: ..."]
+}
+ONLY return JSON. No markdown ticks.
+`;
+
+  const result = await model.generateContent(prompt);
+  const raw = result.response.text().replace(/```json|```/g, "").trim();
+  const parsed = JSON.parse(raw);
+  
+  const finalField = parsed.correctedField || customField;
+
+  // Merge the new custom field into the existing evaluation
+  if (!existingEval.topFields) {
+    existingEval.topFields = [];
+  }
+  if (!existingEval.roadmaps) {
+    existingEval.roadmaps = {};
+  }
+
+  // Add the custom field to topFields if not already present
+  if (!existingEval.topFields.includes(finalField)) {
+    existingEval.topFields.push(finalField);
+  }
+
+  // Add the roadmap phases
+  existingEval.roadmaps[finalField] = parsed.roadmap;
+
+  // Save back to DB
+  await db.careerEvaluation.update({
+    where: { userId: user.id },
+    data: { result: JSON.stringify(existingEval, null, 2) },
+  });
+
+  return { updatedEval: existingEval, generatedField: finalField };
 }
